@@ -228,76 +228,391 @@
 //   content : 推文正文全文（可选，填入后可实现全文搜索）
 // ============================================================
 var articles = [
-  // ===== 医脉通血液科（专辑1，共45篇，以下为已抓取的3篇） =====
   {
     title: "华海应教授，张艳教授：伊基奥仑赛联合ASCT攻坚超高危MM，助力患者达sCR伴MRD阴性，解锁长期生存新可能",
     source: "医脉通血液科",
     link: "",
     content: "",
-    keywords: ["伊基奥仑赛","ASCT","超高危MM","sCR","MRD阴性","多发性骨髓瘤","BCMA CAR-T"]
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","高危","完全缓解","MRD阴性","ASCT"]
   },
   {
     title: "许贞书教授、徐淑娟医师：全人源BCMA CAR-T突破传统疗法困局，高危RRMM患者获深度缓解",
     source: "医脉通血液科",
     link: "",
     content: "",
-    keywords: ["全人源BCMA CAR-T","高危RRMM","深度缓解","多发性骨髓瘤","复发难治"]
+    keywords: ["BCMA CAR-T","CAR-T","全人源CAR-T","多发性骨髓瘤","高危","复发难治"]
   },
   {
     title: "伊基奥仑赛助力两次移植复发MM患者重获缓解，有望成为RRMM的重要治疗选择",
     source: "医脉通血液科",
     link: "",
     content: "",
-    keywords: ["伊基奥仑赛","移植复发","RRMM","多发性骨髓瘤","BCMA CAR-T"]
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","复发难治","ASCT"]
   },
-
-  // ===== CCMTV血液频道（专辑2，共17篇，以下为已抓取的3篇） =====
+  {
+    title: "江松福教授深度解析IMWG最新权威共识：多发性骨髓瘤免疫治疗如何排兵布阵",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤","国际会议"]
+  },
+  {
+    title: "安刚教授：立足EMN最新综述，优化T细胞免疫疗法在MM临床实践中的治疗策略",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤","国际会议"]
+  },
+  {
+    title: "强强联合，伊基奥仑赛联合ASCT为双打击多发性骨髓瘤患者带来生存新曙光",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","ASCT","双打击"]
+  },
+  {
+    title: "突破传统，伊基奥仑赛为复发/难治性多发性骨髓瘤患者带来生存新转机",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤"]
+  },
+  {
+    title: "安刚教授，张帅帅教授：伊基奥仑赛治疗高危RRMM达CR，引领治疗新篇章",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","高危","复发难治"]
+  },
+  {
+    title: "高龄高危多发性骨髓瘤患者重获新生 —— 伊基奥仑赛CAR-T疗法创造生命奇迹",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","CAR-T","多发性骨髓瘤","高危","高龄"]
+  },
+  {
+    title: "庄俊玲教授、张润丰医师：年轻MM患者多发髓外大包块，伊基奥仑赛破难题",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","髓外"]
+  },
+  {
+    title: "王慧涵、廖爱军教授：BCMA CAR-T助力髓外复发难治性MM患者实现深度缓解，突破治疗困境",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T","多发性骨髓瘤","髓外","复发难治"]
+  },
+  {
+    title: "海外患者求医记：泰国骨髓瘤患者在中国接受CAR-T治疗效果显著！1年病情持续稳定！",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","多发性骨髓瘤"]
+  },
+  {
+    title: "全人源BCMA CAR-T为老年复发难治MM患者带来新的选择",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T","全人源CAR-T","多发性骨髓瘤","复发难治","高龄"]
+  },
+  {
+    title: "绝处逢生：伊基奥仑赛为多重治疗失败的多发性骨髓瘤患者带来转机",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤"]
+  },
+  {
+    title: "陈文明教授、刘爱军教授：伊基奥仑赛为具CAR-T治疗史且三重耐药的高龄RRMM患者带来生命曙光",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","CAR-T","多发性骨髓瘤","复发难治","高龄","三重耐药"]
+  },
+  {
+    title: "傅琤琤教授：BCMA CAR-T有助于克服高危细胞遗传学异常，延长高危MM患者生存",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T","多发性骨髓瘤","高危","细胞遗传学异常"]
+  },
+  {
+    title: "路瑾教授，窦雪琳教授：伊基奥仑赛引领高龄RRMM患者实现sCR，安全护航，重塑生命希望",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","复发难治","完全缓解","高龄"]
+  },
+  {
+    title: "杨海平教授，朱冰柯主治医师：攻坚克难，伊基奥仑赛助力高危肾功能不全患者重启希望之旅",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","高危","肾功能不全"]
+  },
+  {
+    title: "全力以福，未来可苏——全球首个全人源BCMA CAR-T上市一周年-蔡真教授专访",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T","全人源CAR-T"]
+  },
+  {
+    title: "《2024 IMWG RRMM CAR-T指南》深度解析：引领CAR-T临床治疗新时代",
+    source: "医脉通血液科",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","多发性骨髓瘤","复发难治","治疗指南","国际会议"]
+  },
   {
     title: "伊基奥仑赛为髓外高危RRMM带来强效、深度缓解",
     source: "CCMTV血液频道",
     link: "",
-    content: "患者为65岁男性，2019年确诊多发性骨髓瘤（IgG κ型，ISS III期）。既往接受硼替佐米+来那度胺+地塞米松（VRD）方案4周期后达到非常好的部分缓解（VGPR），后续行自体造血干细胞移植（ASCT）。移植后18个月出现髓外复发，表现为胸壁软组织肿块（5.2×3.8cm），病理证实为浆细胞瘤。随后接受达雷妥尤单抗+泊马度胺+地塞米松（DPd）方案2周期，疗效不佳，髓外病灶持续增大。经评估后给予伊基奥仑赛（BCMA CAR-T）治疗，输注后第14天出现1级细胞因子释放综合征（CRS），经托珠单抗处理后缓解。输注后第30天评估，血清M蛋白从治疗前的32g/L降至无法检测，髓外病灶完全消失（CR），达到严格意义的完全缓解（sCR）伴MRD阴性。随访6个月，患者持续处于sCR状态，无明显治疗相关不良反应。本病例提示伊基奥仑赛对伴有髓外病变的高危RRMM患者具有良好的疗效和安全性。",
-    keywords: ["伊基奥仑赛","髓外","高危RRMM","深度缓解","多发性骨髓瘤","BCMA CAR-T","髓外复发","浆细胞瘤","CRS","sCR","MRD阴性"]
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","髓外","高危","复发难治"]
   },
   {
     title: "高龄伴肝衰DIC，伊基奥仑赛让浆细胞白血病患者「重获新生」",
     source: "CCMTV血液频道",
     link: "",
     content: "",
-    keywords: ["伊基奥仑赛","高龄","肝衰","DIC","浆细胞白血病","BCMA CAR-T"]
+    keywords: ["伊基奥仑赛","浆细胞白血病","高龄","DIC","肝衰"]
   },
   {
     title: "破局高危复发难治多发性骨髓瘤：靶向BCMA CAR-T攻克「广泛髓外复发+继发浆细胞白血病+活动性胆道感染」多重困境",
     source: "CCMTV血液频道",
     link: "",
     content: "",
-    keywords: ["BCMA CAR-T","高危","复发难治","多发性骨髓瘤","髓外复发","继发浆细胞白血病","胆道感染"]
+    keywords: ["BCMA CAR-T","CAR-T","多发性骨髓瘤","髓外","高危","复发难治","浆细胞白血病","胆道感染"]
   },
-
-  // ===== Htology（专辑3，共18篇，以下为已抓取的2篇） =====
+  {
+    title: "张瑾教授、叶雪石教授：伊基奥仑赛为合并心脏淀粉样变的高危RRMM患者精准破局",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","高危","复发难治","淀粉样变"]
+  },
+  {
+    title: "钱素英教授、徐建芬教授：伊基奥仑赛打破多线治疗复发困境，为R/RMM患者带来生存新转机",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","复发难治"]
+  },
+  {
+    title: "战榕教授、郑志宏教授：攻克功能性高危难题——BCMA CAR-T助力MM患者实现深度缓解",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T","多发性骨髓瘤","高危"]
+  },
+  {
+    title: "中国多发性骨髓瘤诊治指南(2024年修订)巡讲会议广州站圆满举办！",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤","治疗指南"]
+  },
+  {
+    title: "机制优势奠定疗效基石——BCMA CAR-T四大关键研究解读",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T"]
+  },
+  {
+    title: "李萍教授：CART疗法成功拯救一名高危伴浆细胞白血病的老年骨髓瘤患者",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","多发性骨髓瘤","高危","浆细胞白血病","高龄"]
+  },
+  {
+    title: "海外患者寻医记——双打击伴髓外病变的高危MM患者持续8个月sCR",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤","髓外","高危","完全缓解","双打击"]
+  },
+  {
+    title: "伊基奥仑赛为年轻超高危RRMM患者带来新希望，CAR-T回输后获得深度缓解",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","CAR-T","多发性骨髓瘤","高危","复发难治"]
+  },
+  {
+    title: "2024 ASH速递 | 伊基奥仑赛FUMANBA-1研究：CAR-T细胞存续影响R/R MM患者临床预后",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","CAR-T","多发性骨髓瘤","复发难治","国际会议"]
+  },
+  {
+    title: "安刚教授、吕瑞教授：伴TP53突变的RRMM患者遇绝境，伊基奥仑赛助力重现曙光",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","复发难治","TP53突变"]
+  },
+  {
+    title: "路瑾教授、窦雪琳教授：伊基奥仑赛为原发难治MM患者带来CR伴MRD阴性",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","MRD阴性"]
+  },
+  {
+    title: "CAR域前沿|高广勋教授：伊基奥仑赛持久续存，分化成高比例记忆T细胞监视复发",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛"]
+  },
+  {
+    title: "2023ASH｜李春蕊教授：CAR-T细胞疗法在多发性骨髓瘤治疗领域的最新研究进展",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","多发性骨髓瘤","国际会议"]
+  },
+  {
+    title: "CAR域前沿|蔡真教授：CAR-T细胞治疗实现更持久的MRD阴性、获得更长久的生存",
+    source: "CCMTV血液频道",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","MRD阴性"]
+  },
+  {
+    title: "中外多发性骨髓瘤连线平台首场会议顺利收官",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
   {
     title: "钱文斌教授、徐旸教授、张旭照教授：全人源BCMA CAR-T细胞疗法，书写高危多发性骨髓瘤治疗新篇章",
     source: "Htology",
     link: "",
     content: "",
-    keywords: ["全人源BCMA CAR-T","高危","多发性骨髓瘤","细胞疗法"]
+    keywords: ["BCMA CAR-T","CAR-T","全人源CAR-T","多发性骨髓瘤","高危"]
   },
   {
     title: "何爱丽教授、王芳侠教授、张扬博士：伊基奥仑赛打破僵局，助力海外复发难治MM患者重获新生",
     source: "Htology",
     link: "",
     content: "",
-    keywords: ["伊基奥仑赛","复发难治","MM","多发性骨髓瘤","BCMA CAR-T"]
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","复发难治"]
+  },
+  {
+    title: "2024 EHA大会抢先看 | 中国CAR-T一线研究闪耀国际舞台",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["CAR-T","国际会议"]
+  },
+  {
+    title: "破茧重生——伊基奥仑赛治疗复发难治伴髓外病变多发性骨髓瘤患者完全缓解",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","髓外","复发难治"]
+  },
+  {
+    title: "CAR愈新生 | MM系列会精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
+  {
+    title: "Hematology MM 前沿之声：大CAR福可说精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
+  {
+    title: "又一款BCMA CAR-T上市！疗效究竟如何？从说明书直观对比两款BCMA CAR-T疗效",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T"]
+  },
+  {
+    title: "CAR愈新生 | 两例髓外MM经伊基奥仑赛治疗病灶完全消失精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","髓外"]
+  },
+  {
+    title: "细胞治疗前沿——又一款CAR-T获批，两款BCMA CAR-T注册临床数据有何差异？",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["BCMA CAR-T","CAR-T"]
+  },
+  {
+    title: "Hematology 早福荟 第五期：共议国际MM前沿，伊基奥仑赛真实世界破难题精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤"]
+  },
+  {
+    title: "Hematology MM 早福荟 第四期：国际专家共论伊基奥仑赛精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤"]
+  },
+  {
+    title: "Hematology MM 早福荟 第四期会议预告",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
+  {
+    title: "Hematology MM 早福荟 第三期会议预告",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
+  {
+    title: "Hematology MM前沿之声 | 大CAR福可说第一期精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
+  },
+  {
+    title: "王秀菊教授、肖洁教授：个性化诊疗方案，伊基奥仑赛助力髓外多发性骨髓瘤患者达CR",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["伊基奥仑赛","多发性骨髓瘤","髓外"]
+  },
+  {
+    title: "Hematology 早福荟 第五期精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: []
+  },
+  {
+    title: "Hematology MM 早福荟 第四期精彩回顾",
+    source: "Htology",
+    link: "",
+    content: "",
+    keywords: ["多发性骨髓瘤"]
   }
-
-  // ★ 新增文章按以下格式添加：
-  // {
-  //   title: "文章标题",
-  //   source: "来源公众号",
-  //   link: "微信文章链接（可选）",
-  //   content: "此处粘贴推文正文全文（可选，填入后即可全文搜索）",
-  //   keywords: ["关键词1","关键词2","关键词3"]
-  // },
 ];
 
 // ============================================================
