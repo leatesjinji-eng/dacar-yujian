@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>大CAR愈见</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #2c5f8a 0%, #1a3a5c 100%);
+    color: #fff;
+    padding: 24px 16px 20px;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 2px;
+  }
+
+  .header p {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 6px;
+  }
+
+  .search-box {
+    margin: 16px;
+    position: relative;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1px solid #ddd;
+    border-radius: 24px;
+    font-size: 15px;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus {
+    border-color: #2c5f8a;
+  }
+
+  .search-box .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 16px;
+  }
+
+  .stats {
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    margin: 0 16px 12px;
+  }
+
+  .stats span {
+    color: #2c5f8a;
+    font-weight: 600;
+  }
+
+  .article-list {
+    margin: 0 12px 20px;
+    list-style: none;
+  }
+
+  .article-item {
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+
+  .article-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .article-item:active {
+    background: #fafafa;
+  }
+
+  .article-item .source-tag {
+    display: inline-block;
+    font-size: 11px;
+    color: #2c5f8a;
+    background: #e8f0f8;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+
+  .article-item .title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #222;
+    display: block;
+  }
+
+  .article-item .keywords {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .article-item .keywords .tag {
+    font-size: 11px;
+    color: #666;
+    background: #f0f0f0;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .article-item .keywords .tag.highlight {
+    background: #ffe0a0;
+    color: #8a5c00;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 16px;
+    color: #999;
+  }
+
+  .empty-state .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 20px 16px;
+    font-size: 12px;
+    color: #bbb;
+  }
+
+  .sources-info {
+    margin: 0 16px 16px;
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .sources-info a {
+    color: #2c5f8a;
+    text-decoration: none;
+  }
+
+  /* 隐藏项 */
+  .article-item.hidden {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>大CAR愈见</h1>
+  <p>CAR-T细胞治疗病例报道检索</p>
+</div>
+
+<div class="search-box">
+  <span class="search-icon">🔍</span>
+  <input type="text" id="searchInput" placeholder="输入关键词检索，如：髓外、BCMA、浆细胞白血病…" autocomplete="off">
+</div>
+
+<div class="stats">
+  共 <span id="totalCount">0</span> 篇病例报道，当前显示 <span id="showCount">0</span> 篇
+</div>
+
+<ul class="article-list" id="articleList"></ul>
+
+<div class="empty-state hidden" id="emptyState">
+  <div class="icon">📭</div>
+  <p>未找到匹配的病例报道</p>
+  <p style="font-size:13px;margin-top:4px;">试试其他关键词，如：高危、复发、缓解、ASCT</p>
+</div>
+
+<div class="sources-info">
+  数据来源：<a href="https://mp.weixin.qq.com/mp/appmsgalbum?action=getalbum&__biz=MjM5OTA3MzIwMA==&scene=1&album_id=3122463146880991233&count=3#wechat_redirect">医脉通血液科</a> ·
+  <a href="https://mp.weixin.qq.com/mp/appmsgalbum?action=getalbum&__biz=MzA4OTI5MDkwNg==&scene=1&album_id=3541301033677094916&count=3#wechat_redirect">CCMTV血液频道</a> ·
+  <a href="https://mp.weixin.qq.com/mp/appmsgalbum?action=getalbum&__biz=MzU4OTkwNTYyMg==&scene=1&album_id=3389043323373535242&count=3#wechat_redirect">Htology</a>
+</div>
+
+<div class="footer">
+  大CAR愈见 · CAR-T病例检索平台
+</div>
+
+<script>
+// ============================================================
+// 病例数据 — 在此数组中添加/修改文章即可
+// 字段说明：
+//   title   : 文章标题
+//   source  : 来源公众号名称
+//   link    : 微信文章链接（可留空）
+//   keywords: 关键词数组，用于搜索匹配
+// ============================================================
+var articles = [
+  // ===== 医脉通血液科（专辑1，共45篇，以下为已抓取的3篇） =====
+  {
+    title: "华海应教授，张艳教授：伊基奥仑赛联合ASCT攻坚超高危MM，助力患者达sCR伴MRD阴性，解锁长期生存新可能",
+    source: "医脉通血液科",
+    link: "",
+    keywords: ["伊基奥仑赛","ASCT","超高危MM","sCR","MRD阴性","多发性骨髓瘤","BCMA CAR-T"]
+  },
+  {
+    title: "许贞书教授、徐淑娟医师：全人源BCMA CAR-T突破传统疗法困局，高危RRMM患者获深度缓解",
+    source: "医脉通血液科",
+    link: "",
+    keywords: ["全人源BCMA CAR-T","高危RRMM","深度缓解","多发性骨髓瘤","复发难治"]
+  },
+  {
+    title: "伊基奥仑赛助力两次移植复发MM患者重获缓解，有望成为RRMM的重要治疗选择",
+    source: "医脉通血液科",
+    link: "",
+    keywords: ["伊基奥仑赛","移植复发","RRMM","多发性骨髓瘤","BCMA CAR-T"]
+  },
+
+  // ===== CCMTV血液频道（专辑2，共17篇，以下为已抓取的3篇） =====
+  {
+    title: "伊基奥仑赛为髓外高危RRMM带来强效、深度缓解",
+    source: "CCMTV血液频道",
+    link: "",
+    keywords: ["伊基奥仑赛","髓外","高危RRMM","深度缓解","多发性骨髓瘤","BCMA CAR-T"]
+  },
+  {
+    title: "高龄伴肝衰DIC，伊基奥仑赛让浆细胞白血病患者"重获新生"",
+    source: "CCMTV血液频道",
+    link: "",
+    keywords: ["伊基奥仑赛","高龄","肝衰","DIC","浆细胞白血病","BCMA CAR-T"]
+  },
+  {
+    title: "破局高危复发难治多发性骨髓瘤：靶向BCMA CAR-T攻克"广泛髓外复发+继发浆细胞白血病+活动性胆道感染"多重困境",
+    source: "CCMTV血液频道",
+    link: "",
+    keywords: ["BCMA CAR-T","高危","复发难治","多发性骨髓瘤","髓外复发","继发浆细胞白血病","胆道感染"]
+  },
+
+  // ===== Htology（专辑3，共18篇，以下为已抓取的2篇） =====
+  {
+    title: "钱文斌教授、徐旸教授、张旭照教授：全人源BCMA CAR-T细胞疗法，书写高危多发性骨髓瘤治疗新篇章",
+    source: "Htology",
+    link: "",
+    keywords: ["全人源BCMA CAR-T","高危","多发性骨髓瘤","细胞疗法"]
+  },
+  {
+    title: "何爱丽教授、王芳侠教授、张扬博士：伊基奥仑赛打破僵局，助力海外复发难治MM患者重获新生",
+    source: "Htology",
+    link: "",
+    keywords: ["伊基奥仑赛","复发难治","MM","多发性骨髓瘤","BCMA CAR-T"]
+  }
+
+  // ★ 新增文章按以下格式添加：
+  // {
+  //   title: "文章标题",
+  //   source: "来源公众号",
+  //   link: "微信文章链接（可选）",
+  //   keywords: ["关键词1","关键词2","关键词3"]
+  // },
+];
+
+// ============================================================
+// 渲染逻辑
+// ============================================================
+var searchInput = document.getElementById("searchInput");
+var articleList = document.getElementById("articleList");
+var emptyState = document.getElementById("emptyState");
+var totalCountEl = document.getElementById("totalCount");
+var showCountEl = document.getElementById("showCount");
+
+// 高亮关键词
+function highlightText(text, keyword) {
+  if (!keyword) return text;
+  var re = new RegExp("(" + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ")", "gi");
+  return text.replace(re, '<em style="color:#c00;font-style:normal;">$1</em>');
+}
+
+// 渲染列表
+function render(filterKeyword) {
+  var kw = filterKeyword.trim().toLowerCase();
+  var visibleCount = 0;
+
+  articleList.innerHTML = "";
+
+  articles.forEach(function(article) {
+    // 搜索匹配：标题或关键词
+    var matched = !kw;
+    var matchTerms = [];
+
+    if (kw) {
+      if (article.title.toLowerCase().indexOf(kw) !== -1) matched = true;
+      article.keywords.forEach(function(k) {
+        if (k.toLowerCase().indexOf(kw) !== -1) { matched = true; matchTerms.push(k); }
+      });
+    }
+
+    if (!matched) return;
+    visibleCount++;
+
+    var li = document.createElement("li");
+    li.className = "article-item";
+
+    // 标题（可点击跳转）
+    var titleHTML = highlightText(article.title, kw ? filterKeyword.trim() : "");
+    var titleEl = '<span class="title">' + titleHTML + '</span>';
+
+    // 来源标签
+    var sourceTag = '<span class="source-tag">' + article.source + '</span>';
+
+    // 关键词标签
+    var tagsHTML = "";
+    if (article.keywords.length > 0) {
+      tagsHTML = '<div class="keywords">';
+      article.keywords.forEach(function(k) {
+        var cls = (kw && k.toLowerCase().indexOf(kw) !== -1) ? 'tag highlight' : 'tag';
+        tagsHTML += '<span class="' + cls + '">' + k + '</span>';
+      });
+      tagsHTML += '</div>';
+    }
+
+    li.innerHTML = sourceTag + titleEl + tagsHTML;
+
+    // 点击跳转
+    li.addEventListener("click", function() {
+      if (article.link) {
+        window.location.href = article.link;
+      }
+    });
+
+    li.style.cursor = article.link ? "pointer" : "default";
+    articleList.appendChild(li);
+  });
+
+  // 更新计数
+  totalCountEl.textContent = articles.length;
+  showCountEl.textContent = visibleCount;
+
+  // 空状态
+  if (visibleCount === 0) {
+    emptyState.classList.remove("hidden");
+  } else {
+    emptyState.classList.add("hidden");
+  }
+}
+
+// 搜索事件
+searchInput.addEventListener("input", function() {
+  render(this.value);
+});
+
+// 初始渲染
+render("");
+</script>
+
+</body>
+</html>
