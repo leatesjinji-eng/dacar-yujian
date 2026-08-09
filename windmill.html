@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 风车模型</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 40%, #7EC850 70%, #5DA830 100%);
+            overflow: hidden;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        canvas { display: block; }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            pointer-events: none;
+            text-align: center;
+        }
+
+        #info h1 {
+            font-size: 28px;
+            font-weight: 500;
+            letter-spacing: 4px;
+        }
+
+        #info p {
+            font-size: 13px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        #hint {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            pointer-events: none;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h1>🌾 荷兰风车</h1>
+        <p>拖拽旋转 &nbsp;|&nbsp; 滚轮缩放</p>
+    </div>
+    <div id="hint">🖱 拖拽鼠标旋转视角 &nbsp;|&nbsp; 滚轮缩放 &nbsp;|&nbsp; 风车叶片自动旋转</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ─────────────────────────────────────
+        // 场景、相机、渲染器
+        // ─────────────────────────────────────
+        const scene = new THREE.Scene();
+
+        // 天空渐变背景已用 CSS 处理，场景设雾来模拟远处
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 80);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 200);
+        camera.position.set(14, 9, 18);
+        camera.lookAt(0, 2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        document.body.appendChild(renderer.domElement);
+
+        // ─────────────────────────────────────
+        // OrbitControls — 用户旋转/缩放
+        // ─────────────────────────────────────
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 3.5, 0);
+        controls.enableDamping = false;
+        controls.minDistance = 6;
+        controls.maxDistance = 40;
+        controls.maxPolarAngle = Math.PI * 0.75;
+        controls.update();
+
+        // ─────────────────────────────────────
+        // 光照
+        // ─────────────────────────────────────
+        // 环境光 — 基础亮度
+        const ambient = new THREE.AmbientLight('#bcd4f5', 1.4);
+        scene.add(ambient);
+
+        // 半球光 — 天空/地面模拟
+        const hemiLight = new THREE.HemisphereLight('#87CEEB', '#5DA830', 0.9);
+        scene.add(hemiLight);
+
+        // 主方向光（太阳）+ 阴影
+        const sun = new THREE.DirectionalLight('#fff8e7', 4.5);
+        sun.position.set(20, 25, 5);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        sun.shadow.camera.near = 0.5;
+        sun.shadow.camera.far = 100;
+        sun.shadow.camera.left = -25;
+        sun.shadow.camera.right = 25;
+        sun.shadow.camera.top = 25;
+        sun.shadow.camera.bottom = -5;
+        sun.shadow.bias = -0.0005;
+        sun.shadow.normalBias = 0.02;
+        scene.add(sun);
+
+        // ─────────────────────────────────────
+        // 地面
+        // ─────────────────────────────────────
+        const groundGeom = new THREE.CircleGeometry(20, 48);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: '#6DB840',
+            roughness: 0.85,
+            metalness: 0,
+        });
+        const ground = new THREE.Mesh(groundGeom, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.05;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 外围草地环
+        const outerRingGeom = new THREE.RingGeometry(14, 22, 64);
+        const outerRingMat = new THREE.MeshStandardMaterial({
+            color: '#5A9E2F',
+            roughness: 0.9,
+            metalness: 0,
+            side: THREE.DoubleSide,
+        });
+        const outerRing = new THREE.Mesh(outerRingGeom, outerRingMat);
+        outerRing.rotation.x = -Math.PI / 2;
+        outerRing.position.y = -0.03;
+        outerRing.receiveShadow = true;
+        scene.add(outerRing);
+
+        // 小路
+        const pathGeom = new THREE.PlaneGeometry(1.8, 14);
+        const pathMat = new THREE.MeshStandardMaterial({
+            color: '#C8B078',
+            roughness: 0.7,
+            metalness: 0,
+        });
+        const path = new THREE.Mesh(pathGeom, pathMat);
+        path.rotation.x = -Math.PI / 2;
+        path.position.set(0, 0.01, -8);
+        path.receiveShadow = true;
+        scene.add(path);
+
+        // ─────────────────────────────────────
+        // 辅助函数 — 创建材质
+        // ─────────────────────────────────────
+        function brickMat(hex) {
+            return new THREE.MeshStandardMaterial({
+                color: hex,
+                roughness: 0.55,
+                metalness: 0.05,
+            });
+        }
+
+        function woodMat(hex) {
+            return new THREE.MeshStandardMaterial({
+                color: hex,
+                roughness: 0.6,
+                metalness: 0.02,
+            });
+        }
+
+        // ─────────────────────────────────────
+        // 风车主体 — 圆锥台（砖石结构）
+        // ─────────────────────────────────────
+        const bodyGroup = new THREE.Group();
+        scene.add(bodyGroup);
+
+        // 主体：用 CylinderGeometry 做锥形台
+        const bodyGeom = new THREE.CylinderGeometry(1.6, 2.8, 5.5, 32);
+        const body = new THREE.Mesh(bodyGeom, brickMat('#C4956A'));
+        body.position.y = 2.75;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        bodyGroup.add(body);
+
+        // 砖缝纹理 — 水平环线
+        for (let i = 0; i < 8; i++) {
+            const y = 0.3 + i * 0.68;
+            const r = 2.8 - (i / 7) * 1.2;
+            const ringGeom = new THREE.TorusGeometry(r, 0.02, 8, 32);
+            const ring = new THREE.Mesh(ringGeom, new THREE.MeshStandardMaterial({
+                color: '#8B6B4A',
+                roughness: 0.7,
+                metalness: 0,
+            }));
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = y;
+            ring.castShadow = true;
+            bodyGroup.add(ring);
+        }
+
+        // ─────────────────────────────────────
+        // 门（朝向小路，-Z 方向）
+        // ─────────────────────────────────────
+        const doorGroup = new THREE.Group();
+        doorGroup.position.set(0, 0.9, -2.75);
+        doorGroup.rotation.y = Math.PI;
+        doorGroup.rotation.x = 0.08;
+        bodyGroup.add(doorGroup);
+
+        // 门框
+        const doorFrameGeom = new THREE.BoxGeometry(1.04, 1.84, 0.5);
+        const doorFrame = new THREE.Mesh(doorFrameGeom, brickMat('#C4956A'));
+        doorFrame.castShadow = true;
+        doorGroup.add(doorFrame);
+
+        // 门板（木色，最外层可见）
+        const doorGeom = new THREE.BoxGeometry(0.9, 1.7, 0.08);
+        const doorMesh = new THREE.Mesh(doorGeom, woodMat('#8B5E3C'));
+        doorMesh.position.z = 0.27;
+        doorMesh.castShadow = true;
+        doorGroup.add(doorMesh);
+
+        // 门把手
+        const handleGeom = new THREE.SphereGeometry(0.06, 16, 16);
+        const handle = new THREE.Mesh(handleGeom, new THREE.MeshStandardMaterial({
+            color: '#D4A84B',
+            roughness: 0.3,
+            metalness: 0.8,
+        }));
+        handle.position.set(0.25, 0.1, 0.32);
+        doorGroup.add(handle);
+
+        // 门框已加深至 0.5，自然填满塔身曲面缝隙，无需额外填充
+
+        // 窗户已删除
+
+        // ─────────────────────────────────────
+        // 顶部平台 / 阳台
+        // ─────────────────────────────────────
+        const platformGeom = new THREE.CylinderGeometry(1.65, 1.75, 0.35, 32);
+        const platform = new THREE.Mesh(platformGeom, woodMat('#7B5B3A'));
+        platform.position.y = 5.5;
+        platform.castShadow = true;
+        platform.receiveShadow = true;
+        bodyGroup.add(platform);
+
+        // 平台护栏
+        const railingGeom = new THREE.TorusGeometry(1.68, 0.06, 8, 32);
+        const railing = new THREE.Mesh(railingGeom, woodMat('#5C3A1E'));
+        railing.rotation.x = Math.PI / 2;
+        railing.position.y = 5.68;
+        railing.castShadow = true;
+        bodyGroup.add(railing);
+
+        // 护栏立柱
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const postGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.25, 8);
+            const post = new THREE.Mesh(postGeom, woodMat('#5C3A1E'));
+            post.position.set(
+                Math.cos(angle) * 1.62,
+                5.62,
+                Math.sin(angle) * 1.62
+            );
+            post.castShadow = true;
+            bodyGroup.add(post);
+        }
+
+        // ─────────────────────────────────────
+        // 顶部小屋（风车帽子）
+        // ─────────────────────────────────────
+        const capGroup = new THREE.Group();
+        capGroup.position.y = 5.85;
+        bodyGroup.add(capGroup);
+
+        // 帽顶锥体
+        const capConeGeom = new THREE.ConeGeometry(1.65, 1.5, 32);
+        const capCone = new THREE.Mesh(capConeGeom,
+            new THREE.MeshStandardMaterial({
+                color: '#4A3728',
+                roughness: 0.5,
+                metalness: 0.05,
+            })
+        );
+        capCone.position.y = 0.75;
+        capCone.castShadow = true;
+        capGroup.add(capCone);
+
+        // 帽檐
+        const brimGeom = new THREE.TorusGeometry(1.68, 0.08, 8, 32);
+        const brim = new THREE.Mesh(brimGeom, woodMat('#3D2B1A'));
+        brim.rotation.x = Math.PI / 2;
+        brim.castShadow = true;
+        capGroup.add(brim);
+
+        // ─────────────────────────────────────
+        // 风车叶片轴心
+        // ─────────────────────────────────────
+        const hubGroup = new THREE.Group();
+        hubGroup.position.set(0, 5.85, -1.65);
+        hubGroup.rotation.y = Math.PI;
+        bodyGroup.add(hubGroup);
+
+        // 轴心圆柱
+        const axleGeom = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 24);
+        const axle = new THREE.Mesh(axleGeom, woodMat('#4A3020'));
+        axle.rotation.x = Math.PI / 2;
+        axle.castShadow = true;
+        hubGroup.add(axle);
+
+        // 轴心球头
+        const hubCapGeom = new THREE.SphereGeometry(0.28, 24, 24);
+        const hubCap = new THREE.Mesh(hubCapGeom, new THREE.MeshStandardMaterial({
+            color: '#3D2B1A',
+            roughness: 0.4,
+            metalness: 0.3,
+        }));
+        hubCap.position.z = 0.45;
+        hubCap.castShadow = true;
+        hubGroup.add(hubCap);
+
+        // ─────────────────────────────────────
+        // 风车叶片（4片）
+        // ─────────────────────────────────────
+        const bladesGroup = new THREE.Group();
+        hubGroup.add(bladesGroup);
+
+        function createBlade() {
+            const bladeGroup = new THREE.Group();
+
+            // 叶片框架 — 栅格结构
+            const frameLength = 4.8;
+            const frameWidth = 0.7;
+
+            // 主梁
+            const beamGeom = new THREE.BoxGeometry(frameLength, 0.08, 0.06);
+            const beam = new THREE.Mesh(beamGeom, woodMat('#8B6914'));
+            beam.castShadow = true;
+            bladeGroup.add(beam);
+
+            // 横梁（多条）
+            for (let i = 0; i < 7; i++) {
+                const t = (i + 0.5) / 7;
+                const x = -frameLength / 2 + t * frameLength;
+                const barGeom = new THREE.BoxGeometry(0.05, 0.06, frameWidth);
+                const bar = new THREE.Mesh(barGeom, woodMat('#A07828'));
+                bar.position.x = x;
+                bar.castShadow = true;
+                bladeGroup.add(bar);
+            }
+
+            // 帆布（半透明蒙布）
+            const sailGeom = new THREE.PlaneGeometry(frameLength - 0.3, frameWidth - 0.15);
+            const sail = new THREE.Mesh(sailGeom, new THREE.MeshStandardMaterial({
+                color: '#F5F0E0',
+                roughness: 0.7,
+                metalness: 0,
+                opacity: 0.75,
+                transparent: true,
+                side: THREE.DoubleSide,
+            }));
+            sail.position.z = 0.04;
+            sail.castShadow = true;
+            bladeGroup.add(sail);
+
+            // 内框边条
+            const edgeGeom1 = new THREE.BoxGeometry(frameLength, 0.05, 0.04);
+            const edge1 = new THREE.Mesh(edgeGeom1, woodMat('#6B5010'));
+            edge1.position.set(0, 0, frameWidth / 2);
+            bladeGroup.add(edge1);
+
+            const edge2 = new THREE.Mesh(edgeGeom1.clone(), woodMat('#6B5010'));
+            edge2.position.set(0, 0, -frameWidth / 2);
+            bladeGroup.add(edge2);
+
+            return bladeGroup;
+        }
+
+        // 4 片叶片，在 hubGroup 的局部空间中均匀分布
+        for (let i = 0; i < 4; i++) {
+            const blade = createBlade();
+            blade.rotation.z = (i / 4) * Math.PI * 2;
+            blade.position.z = 0.5;
+            bladesGroup.add(blade);
+        }
+
+        // ─────────────────────────────────────
+        // 装饰：薰衣草 + 油菜花 — 浅绿地面密植
+        // ─────────────────────────────────────
+
+        const plantsGroup = new THREE.Group();
+        scene.add(plantsGroup);
+
+        // 共享几何体（复用减少内存）
+        const thinStemGeom = new THREE.CylinderGeometry(0.015, 0.02, 1, 6);
+        const thickStemGeom = new THREE.CylinderGeometry(0.025, 0.035, 1, 6);
+        const stemMat = new THREE.MeshStandardMaterial({ color: '#4A7C2E', roughness: 0.55 });
+        const stemMatDark = new THREE.MeshStandardMaterial({ color: '#3A6320', roughness: 0.6 });
+
+        // 薰衣草花粒（紫色小粒）
+        const lavFlowerGeom = new THREE.SphereGeometry(0.04, 6, 6);
+        const lavMat1 = new THREE.MeshStandardMaterial({ color: '#9B72B6', roughness: 0.25 });
+        const lavMat2 = new THREE.MeshStandardMaterial({ color: '#B39BC8', roughness: 0.2 });
+        const lavMat3 = new THREE.MeshStandardMaterial({ color: '#7B5EA7', roughness: 0.3 });
+
+        // 油菜花粒（亮黄色）
+        const rapeFlowerGeom = new THREE.SphereGeometry(0.05, 6, 6);
+        const rapeMat1 = new THREE.MeshStandardMaterial({ color: '#FFD700', roughness: 0.2 });
+        const rapeMat2 = new THREE.MeshStandardMaterial({ color: '#FFC107', roughness: 0.2 });
+        const rapeMat3 = new THREE.MeshStandardMaterial({ color: '#FFE44D', roughness: 0.15 });
+
+        // 叶子
+        const leafGeom = new THREE.ConeGeometry(0.06, 0.15, 5, 1);
+        const leafMat = new THREE.MeshStandardMaterial({ color: '#5B8C3E', roughness: 0.5 });
+
+        // ── 实例数据收集器 ──
+        const thinStems = [];
+        const thickStems = [];
+        const lavFlowers = [[], [], []];
+        const rapeFlowers = [[], [], []];
+        const leaves = [];
+
+        function pushStem(arr, x, y, z, h) { arr.push([x, y, z, h]); }
+        function pushFlower(arr, x, y, z, s) { arr.push([x, y, z, s]); }
+
+        // ── 单茎种植（只记录数据）──
+        function plantLavenderStem(cx, cz, lx, lz, h) {
+            const sx = cx + lx, sz = cz + lz;
+            pushStem(thinStems, sx, h / 2, sz, h);
+            const levels = 4 + Math.floor(Math.random() * 4);
+            for (let lv = 0; lv < levels; lv++) {
+                const count = 3 + Math.floor(Math.random() * 3);
+                for (let f = 0; f < count; f++) {
+                    const bucket = lavFlowers[Math.floor(Math.random() * 3)];
+                    const fy = h - 0.06 * lv;
+                    const fr = 0.06 * (1 - lv / levels) + 0.01;
+                    const fa = Math.random() * Math.PI * 2;
+                    pushFlower(bucket, sx + Math.cos(fa) * fr, fy, sz + Math.sin(fa) * fr, 0.7 + Math.random() * 0.6);
+                }
+            }
+        }
+
+        function plantRapeseedStem(cx, cz, lx, lz, h) {
+            const sx = cx + lx, sz = cz + lz;
+            pushStem(thickStems, sx, h / 2, sz, h);
+            const fc = 7 + Math.floor(Math.random() * 8);
+            for (let f = 0; f < fc; f++) {
+                const bucket = rapeFlowers[Math.floor(Math.random() * 3)];
+                const fr = 0.04 + Math.random() * 0.07;
+                const fa = Math.random() * Math.PI * 2;
+                pushFlower(bucket, sx + Math.cos(fa) * fr, h - 0.02 + Math.random() * 0.06, sz + Math.sin(fa) * fr, 0.6 + Math.random() * 0.8);
+            }
+            if (Math.random() < 0.3) {
+                leaves.push([sx, h * 0.5, sz, Math.random() * 0.6, (Math.random() - 0.5) * 1.5]);
+            }
+        }
+
+        function plantLavenderClump(cx, cz, stems) {
+            for (let s = 0; s < stems; s++) {
+                plantLavenderStem(cx, cz, (Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35, 0.35 + Math.random() * 0.5);
+            }
+        }
+
+        function plantRapeseedClump(cx, cz, stems) {
+            for (let s = 0; s < stems; s++) {
+                plantRapeseedStem(cx, cz, (Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35, 0.3 + Math.random() * 0.45);
+            }
+        }
+
+        // ── 判断某点是否在小路上 ──
+        function isOnPath(x, z) {
+            // 小路从门前延伸到浅绿区域底端，宽 1.8
+            if (z > 0.3 || z < -14.5) return false;
+            if (Math.abs(x) < 1.1) return true;
+            return false;
+        }
+
+        // ── 在浅绿区域密集种植（像农田一样茂密）──
+        // 浅绿区域：r 从 3.6（围栏外）到 13.8（深绿环内）
+const clumpCount = 800;
+        const placedPositions = []; // 避免重叠
+
+        for (let i = 0; i < clumpCount; i++) {
+            // 随机位置（极坐标）
+            let attempts = 0;
+            let x, z, r, angle;
+            do {
+                angle = Math.random() * Math.PI * 2;
+                r = 3.8 + Math.random() * 9.8;
+                x = Math.cos(angle) * r;
+                z = Math.sin(angle) * r;
+                attempts++;
+            } while (
+                attempts < 50 &&
+                (isOnPath(x, z) || placedPositions.some(p => {
+                    const dx = p.x - x;
+                    const dz = p.z - z;
+                    return Math.sqrt(dx * dx + dz * dz) < 0.3;
+                }))
+            );
+
+            if (attempts >= 50) continue; // 放不下就跳过
+            placedPositions.push({ x, z });
+
+            // 油菜花为主（60%），薰衣草点缀（25%），混合（15%）
+            const type = Math.random();
+            if (type < 0.6) {
+                plantRapeseedClump(x, z, 5 + Math.floor(Math.random() * 8));
+            } else if (type < 0.85) {
+                plantLavenderClump(x, z, 4 + Math.floor(Math.random() * 7));
+            } else {
+                plantRapeseedClump(x, z, 3 + Math.floor(Math.random() * 5));
+                plantLavenderClump(x + 0.25, z + 0.25, 2 + Math.floor(Math.random() * 4));
+            }
+        }
+
+        // ── 用收集到的数据创建 InstancedMesh ──
+        const _m = new THREE.Matrix4();
+
+        function buildInstancedMesh(geom, mat, data, isStem) {
+            if (!data.length) return null;
+            const im = new THREE.InstancedMesh(geom, mat, data.length);
+            im.castShadow = true;
+            im.receiveShadow = true;
+            for (let i = 0; i < data.length; i++) {
+                const d = data[i];
+                if (isStem) {
+                    _m.set(1, 0, 0, d[0], 0, d[3], 0, d[1], 0, 0, 1, d[2], 0, 0, 0, 1);
+                } else {
+                    const s = d[3];
+                    _m.set(s, 0, 0, d[0], 0, s, 0, d[1], 0, 0, s, d[2], 0, 0, 0, 1);
+                }
+                im.setMatrixAt(i, _m);
+            }
+            im.instanceMatrix.needsUpdate = true;
+            return im;
+        }
+
+        if (thinStems.length) plantsGroup.add(buildInstancedMesh(thinStemGeom, stemMat, thinStems, true));
+        if (thickStems.length) plantsGroup.add(buildInstancedMesh(thickStemGeom, stemMatDark, thickStems, true));
+
+        const lavMats = [lavMat1, lavMat2, lavMat3];
+        lavFlowers.forEach((data, i) => {
+            if (data.length) plantsGroup.add(buildInstancedMesh(lavFlowerGeom, lavMats[i], data, false));
+        });
+
+        const rapeMats = [rapeMat1, rapeMat2, rapeMat3];
+        rapeFlowers.forEach((data, i) => {
+            if (data.length) plantsGroup.add(buildInstancedMesh(rapeFlowerGeom, rapeMats[i], data, false));
+        });
+
+        if (leaves.length) {
+            const leafIM = new THREE.InstancedMesh(leafGeom, leafMat, leaves.length);
+            leafIM.castShadow = true;
+            const _q = new THREE.Quaternion();
+            const _p = new THREE.Vector3();
+            const _s = new THREE.Vector3(1, 1, 1);
+            for (let i = 0; i < leaves.length; i++) {
+                const [lx, ly, lz, rx, rz] = leaves[i];
+                _q.setFromEuler(new THREE.Euler(rx, 0, rz, 'XYZ'));
+                _p.set(lx, ly, lz + 0.04);
+                _m.compose(_p, _q, _s);
+                leafIM.setMatrixAt(i, _m);
+            }
+            leafIM.instanceMatrix.needsUpdate = true;
+            plantsGroup.add(leafIM);
+        }
+
+        // ─────────────────────────────────────
+        // 小狗模型 — Low-Poly 精致版，站在小路尽头
+        // ─────────────────────────────────────
+        function dogMat(color, opts = {}) {
+            return new THREE.MeshStandardMaterial({
+                color,
+                roughness: opts.roughness ?? 0.55,
+                metalness: opts.metalness ?? 0.02,
+            });
+        }
+
+        const dogGroup = new THREE.Group();
+        dogGroup.position.set(1.2, 0.04, -14);
+        dogGroup.rotation.y = Math.PI;
+        dogGroup.scale.setScalar(0.55);
+        scene.add(dogGroup);
+
+        // -- 身体 --
+        const dogBodyGrp = new THREE.Group();
+        dogBodyGrp.position.set(0, 1.02, 0);
+        dogGroup.add(dogBodyGrp);
+
+        const dogBodyGeo = new THREE.SphereGeometry(0.72, 48, 36);
+        const dogBodyMesh = new THREE.Mesh(dogBodyGeo, dogMat('#B8782D'));
+        dogBodyMesh.scale.set(0.85, 0.78, 1.5);
+        dogBodyMesh.castShadow = true;
+        dogBodyMesh.receiveShadow = true;
+        dogBodyGrp.add(dogBodyMesh);
+
+        const dogBellyGeo = new THREE.SphereGeometry(0.45, 32, 24);
+        const dogBellyMesh = new THREE.Mesh(dogBellyGeo, dogMat('#DEB887', { roughness: 0.6 }));
+        dogBellyMesh.scale.set(0.55, 0.45, 0.8);
+        dogBellyMesh.position.set(0, -0.25, 0.15);
+        dogBellyMesh.castShadow = true;
+        dogBodyGrp.add(dogBellyMesh);
+
+        // -- 头 --
+        const dogHeadGrp = new THREE.Group();
+        dogHeadGrp.position.set(0, 1.42, 0.76);
+        dogGroup.add(dogHeadGrp);
+
+        const dogHeadGeo = new THREE.SphereGeometry(0.48, 40, 30);
+        const dogHead = new THREE.Mesh(dogHeadGeo, dogMat('#B8782D'));
+        dogHead.scale.set(1.0, 0.92, 0.95);
+        dogHead.castShadow = true;
+        dogHead.receiveShadow = true;
+        dogHeadGrp.add(dogHead);
+
+        // -- 鼻子 --
+        const dogSnoutGrp = new THREE.Group();
+        dogSnoutGrp.position.set(0, -0.12, 0.30);
+        dogSnoutGrp.rotation.x = 0.25;
+        dogHeadGrp.add(dogSnoutGrp);
+
+        const dogSnoutGeo = new THREE.SphereGeometry(0.22, 24, 18);
+        const dogSnout = new THREE.Mesh(dogSnoutGeo, dogMat('#C4904A', { roughness: 0.5 }));
+        dogSnout.scale.set(0.75, 0.55, 1.1);
+        dogSnout.castShadow = true;
+        dogSnoutGrp.add(dogSnout);
+
+        const dogNoseGeo = new THREE.SphereGeometry(0.0744, 16, 12);
+        const dogNose = new THREE.Mesh(dogNoseGeo, dogMat('#111111', { roughness: 0.3 }));
+        dogNose.position.set(0, -0.04, 0.23);
+        dogSnoutGrp.add(dogNose);
+
+        // -- 嘴 --
+        const dogMouthGeo = new THREE.BoxGeometry(0.12, 0.02, 0.01);
+        const dogMouth = new THREE.Mesh(dogMouthGeo, dogMat('#3a2010', { roughness: 0.4 }));
+        dogMouth.position.set(0, -0.18, 0.50);
+        dogHeadGrp.add(dogMouth);
+
+        // -- 眼睛 --
+        function createDogEye(x) {
+            const grp = new THREE.Group();
+            const whiteGeo = new THREE.SphereGeometry(0.09, 16, 12);
+            grp.add(new THREE.Mesh(whiteGeo, dogMat('#FFFFF0', { roughness: 0.2 })));
+            const irisGeo = new THREE.SphereGeometry(0.06, 12, 8);
+            const iris = new THREE.Mesh(irisGeo, dogMat('#2C1810', { roughness: 0.15 }));
+            iris.position.z = 0.05;
+            grp.add(iris);
+            const hlGeo = new THREE.SphereGeometry(0.022, 8, 6);
+            const hl = new THREE.Mesh(hlGeo, dogMat('#FFFFFF', { roughness: 0.05 }));
+            hl.position.set(0.02, 0.025, 0.07);
+            grp.add(hl);
+            grp.position.set(x, 0.05, 0.4);
+            return grp;
+        }
+        dogHeadGrp.add(createDogEye(0.2));
+        dogHeadGrp.add(createDogEye(-0.2));
+
+        // -- 耳朵 --
+        function createDogEar(x) {
+            const grp = new THREE.Group();
+            const px = x * 0.70, py = 0.36, pz = -0.04;
+            grp.position.set(px, py, pz);
+            const a = 0.48, b = 0.4416, c = 0.456;
+            const normal = new THREE.Vector3(px / (a * a), py / (b * b), pz / (c * c)).normalize();
+            const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+            grp.setRotationFromQuaternion(quat);
+            grp.rotateZ(x > 0 ? 0.15 : -0.15);
+            grp.rotateX(0.1);
+            const earH = 0.38;
+            const earGeo = new THREE.ConeGeometry(0.09, earH, 12, 8);
+            const ear = new THREE.Mesh(earGeo, dogMat('#6B3A1F', { roughness: 0.65 }));
+            ear.position.y = earH / 2;
+            ear.castShadow = true;
+            grp.add(ear);
+            return grp;
+        }
+        dogHeadGrp.add(createDogEar(0.25));
+        dogHeadGrp.add(createDogEar(-0.25));
+
+        // -- 腿 --
+        function createDogLeg(x, z) {
+            const grp = new THREE.Group();
+            grp.position.set(x, 0.28, z);
+            const jointGeo = new THREE.SphereGeometry(0.19, 16, 12);
+            const joint = new THREE.Mesh(jointGeo, dogMat('#A06B2F'));
+            joint.scale.set(1.0, 0.65, 1.0);
+            joint.position.y = 0.38;
+            joint.castShadow = true;
+            grp.add(joint);
+            const upperGeo = new THREE.CylinderGeometry(0.14, 0.15, 0.35, 16);
+            const upper = new THREE.Mesh(upperGeo, dogMat('#A06B2F'));
+            upper.position.y = 0.25;
+            upper.castShadow = true;
+            grp.add(upper);
+            const lowerGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.35, 16);
+            const lower = new THREE.Mesh(lowerGeo, dogMat('#B8782D'));
+            lower.position.y = -0.07;
+            lower.castShadow = true;
+            grp.add(lower);
+            const pawGeo = new THREE.SphereGeometry(0.12, 12, 8);
+            const paw = new THREE.Mesh(pawGeo, dogMat('#DEB887', { roughness: 0.7 }));
+            paw.scale.set(1.0, 0.35, 1.15);
+            paw.position.y = -0.27;
+            paw.castShadow = true;
+            paw.receiveShadow = true;
+            grp.add(paw);
+            return grp;
+        }
+        dogGroup.add(createDogLeg(0.28, 0.6));
+        dogGroup.add(createDogLeg(-0.28, 0.6));
+        dogGroup.add(createDogLeg(0.28, -0.6));
+        dogGroup.add(createDogLeg(-0.28, -0.6));
+
+        // -- 尾巴 --
+        const dogTailGrp = new THREE.Group();
+        dogTailGrp.position.set(0, 0.245, -0.95);
+        dogBodyGrp.add(dogTailGrp);
+
+        const dogTailJointGeo = new THREE.SphereGeometry(0.10, 8, 6);
+        const dogTailJoint = new THREE.Mesh(dogTailJointGeo, dogMat('#B8782D', { roughness: 0.6 }));
+        dogTailJoint.position.set(0, -0.01, 0.01);
+        dogTailJoint.castShadow = true;
+        dogTailGrp.add(dogTailJoint);
+
+        const dogTailPivot = new THREE.Group();
+        dogTailPivot.rotation.x = -0.7;
+        dogTailGrp.add(dogTailPivot);
+
+        const dogTailH = 0.65;
+        const dogTailGeo = new THREE.ConeGeometry(0.09, dogTailH, 12, 8);
+        const dogTailMesh = new THREE.Mesh(dogTailGeo, dogMat('#B8782D'));
+        dogTailMesh.position.y = dogTailH / 2;
+        dogTailMesh.castShadow = true;
+        dogTailPivot.add(dogTailMesh);
+
+        const dogTailTipGeo = new THREE.SphereGeometry(0.07, 8, 6);
+        const dogTailTip = new THREE.Mesh(dogTailTipGeo, dogMat('#DEB887', { roughness: 0.7 }));
+        dogTailTip.position.y = dogTailH;
+        dogTailPivot.add(dogTailTip);
+
+        // ─────────────────────────────────────
+        // 路牌 — 蓝白金属路牌（CSS 设计转 3D）
+        // ─────────────────────────────────────
+        const signGroup = new THREE.Group();
+        signGroup.position.set(1.5, 0, -3.65);
+        signGroup.rotation.y = 0.5;
+        scene.add(signGroup);
+
+        // Canvas 纹理 — 蓝白路牌面板
+        const signCanvas = document.createElement('canvas');
+        signCanvas.width = 280;
+        signCanvas.height = 180;
+        const ctx = signCanvas.getContext('2d');
+
+        // 蓝色区域
+        const blueGrad = ctx.createLinearGradient(0, 0, 0, 108);
+        blueGrad.addColorStop(0, '#1a56b8');
+        blueGrad.addColorStop(0.25, '#2266d6');
+        blueGrad.addColorStop(0.5, '#1a5cc4');
+        blueGrad.addColorStop(1, '#1246a0');
+        ctx.fillStyle = blueGrad;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 280, 108, [8, 8, 0, 0]);
+        ctx.fill();
+
+        // 白色区域
+        const whiteGrad = ctx.createLinearGradient(0, 108, 0, 180);
+        whiteGrad.addColorStop(0, '#f5f5f5');
+        whiteGrad.addColorStop(0.2, '#fafafa');
+        whiteGrad.addColorStop(0.5, '#ffffff');
+        whiteGrad.addColorStop(1, '#f0f0f0');
+        ctx.fillStyle = whiteGrad;
+        ctx.beginPath();
+        ctx.roundRect(0, 108, 280, 72, [0, 0, 8, 8]);
+        ctx.fill();
+
+        // 中文文字
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 3;
+        ctx.fillText('我在风车很想你', 140, 54);
+        ctx.shadowBlur = 0;
+
+        // 英文文字
+        ctx.fillStyle = '#333333';
+        ctx.font = '13px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MISSING YOU', 140, 132);
+        ctx.fillText('AT THE WINDMILL', 140, 152);
+
+        // 边框
+        ctx.strokeStyle = '#e8e8e8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(1.5, 1.5, 277, 177, 8);
+        ctx.stroke();
+
+        // 路牌面板
+        const signTex = new THREE.CanvasTexture(signCanvas);
+        signTex.colorSpace = THREE.SRGBColorSpace;
+        const signBoardGeom = new THREE.BoxGeometry(0.9, 0.58, 0.04);
+        const signBoardMat = new THREE.MeshStandardMaterial({
+            map: signTex,
+            roughness: 0.35,
+            metalness: 0.05,
+        });
+        const signBoard = new THREE.Mesh(signBoardGeom, signBoardMat);
+        signBoard.position.y = 2.25;
+        signBoard.castShadow = true;
+        signGroup.add(signBoard);
+
+        // 金属连接件（上）
+        const bracketTopGeom = new THREE.BoxGeometry(0.14, 0.03, 0.08);
+        const bracketMat = new THREE.MeshStandardMaterial({
+            color: '#d0d0d0', roughness: 0.3, metalness: 0.9,
+        });
+        const bracketTop = new THREE.Mesh(bracketTopGeom, bracketMat);
+        bracketTop.position.y = 1.93;
+        bracketTop.castShadow = true;
+        signGroup.add(bracketTop);
+
+        // 金属连接件（下）
+        const bracketBotGeom = new THREE.BoxGeometry(0.1, 0.025, 0.06);
+        const bracketBot = new THREE.Mesh(bracketBotGeom, bracketMat);
+        bracketBot.position.y = 1.88;
+        bracketBot.castShadow = true;
+        signGroup.add(bracketBot);
+
+        // 金属杆
+        const poleGeom = new THREE.CylinderGeometry(0.04, 0.045, 2.0, 16);
+        const poleMat = new THREE.MeshStandardMaterial({
+            color: '#c0c0c0', roughness: 0.2, metalness: 0.95,
+        });
+        const pole = new THREE.Mesh(poleGeom, poleMat);
+        pole.position.y = 0.95;
+        pole.castShadow = true;
+        pole.receiveShadow = true;
+        signGroup.add(pole);
+
+        // 底座
+        const baseGeom = new THREE.CylinderGeometry(0.07, 0.08, 0.06, 16);
+        const base = new THREE.Mesh(baseGeom, poleMat);
+        base.position.y = 0.03;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        signGroup.add(base);
+
+        // ─────────────────────────────────────
+        // 装饰：完整圆形围栏（柱子 + 横梁）
+        // ─────────────────────────────────────
+        const fenceGroup = new THREE.Group();
+        scene.add(fenceGroup);
+
+        const fenceRadius = 3.4;
+        const fencePostCount = 32;
+        const postHeight = 0.5;
+        const railHeight1 = 0.12;  // 下横梁高度
+        const railHeight2 = 0.42;  // 上横梁高度
+
+        function createFencePost(x, z) {
+            const postGeom = new THREE.CylinderGeometry(0.05, 0.06, postHeight, 8);
+            const post = new THREE.Mesh(postGeom, woodMat('#8B6914'));
+            post.position.set(x, postHeight / 2, z);
+            post.castShadow = true;
+            post.receiveShadow = true;
+            return post;
+        }
+
+        // 生成所有柱子的位置（跳过小路开口处）
+        const fencePositions = [];
+        for (let i = 0; i < fencePostCount; i++) {
+            const angle = (i / fencePostCount) * Math.PI * 2;
+            const x = Math.cos(angle) * fenceRadius;
+            const z = Math.sin(angle) * fenceRadius;
+
+            // 小路开口：-Z 方向，宽度约 1.8
+            const isPathSide = z < -2.0 && Math.abs(x) < 1.1;
+            if (isPathSide) continue;
+
+            fencePositions.push({ x, z, angle });
+            fenceGroup.add(createFencePost(x, z));
+        }
+
+        // 横梁 — 用短木条逐段连接相邻柱子
+        function createRailSegment(x1, z1, x2, z2, y) {
+            const dx = x2 - x1;
+            const dz = z2 - z1;
+            const length = Math.sqrt(dx * dx + dz * dz);
+            const midX = (x1 + x2) / 2;
+            const midZ = (z1 + z2) / 2;
+            const angle = Math.atan2(dx, dz);
+
+            const railGeom = new THREE.BoxGeometry(0.04, 0.05, length);
+            const rail = new THREE.Mesh(railGeom, woodMat('#A07828'));
+            rail.position.set(midX, y, midZ);
+            rail.rotation.y = angle;
+            rail.castShadow = true;
+            rail.receiveShadow = true;
+            return rail;
+        }
+
+        // 上下两圈横梁（跳过小路开口）
+        for (let i = 0; i < fencePositions.length; i++) {
+            const curr = fencePositions[i];
+            const next = fencePositions[(i + 1) % fencePositions.length];
+            const gapDist = Math.sqrt((next.x - curr.x) ** 2 + (next.z - curr.z) ** 2);
+            // 间距过大说明是开口两端，不连横梁
+            if (gapDist > 1.5) continue;
+            fenceGroup.add(createRailSegment(curr.x, curr.z, next.x, next.z, railHeight1));
+            fenceGroup.add(createRailSegment(curr.x, curr.z, next.x, next.z, railHeight2));
+        }
+
+        // ─────────────────────────────────────
+        // 云朵
+        // ─────────────────────────────────────
+        function createCloud(x, y, z, scale = 1) {
+            const cloudGroup = new THREE.Group();
+            const cloudMat = new THREE.MeshStandardMaterial({
+                color: '#FFFFFF',
+                roughness: 1,
+                metalness: 0,
+            });
+
+            const positions = [
+                [0, 0, 0, 0.6],
+                [0.6, 0.15, 0, 0.45],
+                [-0.55, 0.1, 0, 0.5],
+                [0.3, 0.4, 0, 0.4],
+                [-0.25, 0.35, 0, 0.42],
+                [0.7, -0.1, 0.15, 0.35],
+                [-0.6, -0.05, -0.1, 0.38],
+            ];
+
+            positions.forEach(([cx, cy, cz, r]) => {
+                const geom = new THREE.SphereGeometry(r, 12, 12);
+                const sphere = new THREE.Mesh(geom, cloudMat);
+                sphere.position.set(cx, cy, cz);
+                cloudGroup.add(sphere);
+            });
+
+            cloudGroup.position.set(x, y, z);
+            cloudGroup.scale.setScalar(scale);
+            return cloudGroup;
+        }
+
+        const cloud1 = createCloud(8, 9, -4, 1.4);
+        const cloud2 = createCloud(-7, 10, -6, 1.1);
+        const cloud3 = createCloud(5, 11, -8, 0.9);
+        const cloud4 = createCloud(-4, 8.5, -3, 1.3);
+        scene.add(cloud1);
+        scene.add(cloud2);
+        scene.add(cloud3);
+        scene.add(cloud4);
+
+        // ─────────────────────────────────────
+        // 动画循环
+        // ─────────────────────────────────────
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.1);
+
+            // 叶片旋转
+            bladesGroup.rotation.z += dt * 0.8;
+
+            // 狗动画 — 尾巴摇动 + 呼吸
+            const dogTime = clock.elapsedTime;
+            dogTailPivot.rotation.z = Math.sin(dogTime * 4.5) * 0.35;
+            const breath = 1 + Math.sin(dogTime * 1.8) * 0.015;
+            const breathY = breath * 0.98 + 0.02;
+            dogBodyMesh.scale.set(0.85 * breath, 0.78 * breathY, 1.5 * breath);
+            dogBellyMesh.scale.set(0.55 * breath, 0.45 * breathY, 0.8 * breath);
+
+            // 云朵缓慢飘动
+            const t = performance.now() * 0.0001;
+            cloud1.position.x += dt * 0.15;
+            cloud2.position.x -= dt * 0.1;
+            cloud3.position.x += dt * 0.12;
+            cloud4.position.x -= dt * 0.08;
+
+            // 云朵循环
+            [cloud1, cloud2, cloud3, cloud4].forEach((c, i) => {
+                const speeds = [0.15, -0.1, 0.12, -0.08];
+                const limits = [14, -14, 14, -14];
+                if (speeds[i] > 0 && c.position.x > limits[i]) c.position.x = -14;
+                if (speeds[i] < 0 && c.position.x < limits[i]) c.position.x = 14;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ─────────────────────────────────────
+        // 响应窗口大小变化
+        // ─────────────────────────────────────
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 启动
+        animate();
+    </script>
+</body>
+</html>
