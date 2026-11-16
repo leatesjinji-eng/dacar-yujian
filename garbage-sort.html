@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>垃圾分类小游戏 · 垃圾站</title>
+<style>
+  :root {
+    --sky1: #bfe3ff;
+    --sky2: #eef8ff;
+    --ground1: #d9cfbe;
+    --ground2: #c6b9a3;
+    --ink: #3a2f2a;
+    --muted: #9a8c74;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Nunito", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+
+  #stage {
+    position: relative; width: 100%; height: 100vh; height: 100dvh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---------- 场景 ---------- */
+  #sky {
+    position: absolute; left: 0; right: 0; top: 0; height: 68%;
+    background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 100%);
+  }
+  #ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 32%;
+    background: linear-gradient(180deg, var(--ground1) 0%, var(--ground2) 100%);
+    box-shadow: inset 0 10px 0 rgba(0,0,0,.04);
+  }
+  .deco { position: absolute; z-index: 1; pointer-events: none; }
+  .sun { left: 4%; top: 4%; font-size: 46px; opacity: .95; }
+  .cloud { font-size: 42px; opacity: .85; }
+  .cloud.c1 { right: 8%; top: 8%; animation: drift 22s ease-in-out infinite; }
+  .cloud.c2 { right: 30%; top: 16%; font-size: 32px; opacity: .7; animation: drift 30s ease-in-out infinite; }
+  @keyframes drift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-26px); } }
+
+  .pavilion {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: 32%; width: min(42vw, 250px); z-index: 2;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,.18));
+  }
+
+  /* ---------- 顶部信息栏 ---------- */
+  #hud {
+    position: relative; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    max-width: 720px; width: 100%; margin: 0 auto; padding: 12px 16px;
+    font-weight: 800; color: var(--ink);
+  }
+  .pill {
+    background: rgba(255,255,255,.78);
+    padding: 6px 14px; border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.10);
+    font-size: 15px;
+  }
+  .lang-btn {
+    border: none; cursor: pointer; font-family: inherit;
+    font-weight: 800; color: var(--ink);
+    transition: background .15s ease, transform .15s ease;
+  }
+  .lang-btn:hover { background: rgba(255,255,255,.95); }
+  .lang-btn:active { transform: scale(.95); }
+  #lives { font-size: 18px; letter-spacing: 1px; }
+
+  /* ---------- 中间：题目卡 ---------- */
+  .play-area {
+    position: relative; z-index: 5; flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    padding: 0 16px;
+  }
+  #itemCard {
+    background: #fffdf6; border-radius: 22px; padding: 20px 32px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.18);
+    text-align: center; min-width: min(74vw, 300px);
+    border: 3px dashed #dccbad;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  #itemCard.pop { animation: cardPop .4s ease; }
+  @keyframes cardPop { 0%{ transform: scale(1);} 40%{ transform: scale(1.08);} 100%{ transform: scale(1);} }
+  #itemCard .q { font-size: 15px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  #itemCard .emoji { font-size: clamp(60px, 17vw, 100px); line-height: 1.1; animation: floaty 2.6s ease-in-out infinite; display: inline-block; }
+  #itemCard .name { font-size: clamp(20px, 5.4vw, 27px); font-weight: 900; margin-top: 8px; }
+  @keyframes floaty { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-8px);} }
+
+  #feedback {
+    font-size: 16px; font-weight: 800; padding: 9px 18px; border-radius: 999px;
+    color: #fff; opacity: 0; transform: translateY(8px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events: none;
+    box-shadow: 0 6px 16px rgba(0,0,0,.2);
+  }
+  #feedback.show { opacity: 1; transform: translateY(0); }
+  #feedback.good { background: #16a34a; }
+  #feedback.bad { background: #dc2626; }
+
+  /* ---------- 底部：垃圾桶 ---------- */
+  #bins {
+    position: relative; z-index: 5;
+    max-width: 720px; width: 100%; margin: 0 auto;
+    display: flex; gap: 8px; padding: 0 12px 20px;
+  }
+  .bin {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .bin .bin-tank {
+    width: 100%; max-width: 92px; aspect-ratio: 7 / 8;
+    border-radius: 14px 14px 18px 18px; position: relative;
+    display: grid; place-items: center;
+    box-shadow: inset 0 -10px 0 rgba(0,0,0,.15), 0 8px 16px rgba(0,0,0,.22);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .bin:hover .bin-tank { transform: translateY(-4px); }
+  .bin:active .bin-tank { transform: translateY(1px) scale(.95); }
+  .bin .bin-tank::before {
+    content: ""; position: absolute; top: -9px; left: -3px; right: -3px; height: 18px;
+    border-radius: 9px; background: inherit; filter: brightness(.8);
+    box-shadow: 0 2px 4px rgba(0,0,0,.15);
+  }
+  .bin .bin-tank::after {
+    content: ""; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.28);
+  }
+  .bin-symbol { font-size: clamp(26px, 6vw, 38px); filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+  .bin-label {
+    font-size: clamp(12px, 3.2vw, 15px); font-weight: 800; color: var(--ink);
+    background: rgba(255,255,255,.84); padding: 3px 11px; border-radius: 999px;
+    white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,.12);
+  }
+  .bin-dry .bin-tank { background: #4b5563; }
+  .bin-wet .bin-tank { background: #92623a; }
+  .bin-recyclable .bin-tank { background: #2563eb; }
+  .bin-hazardous .bin-tank { background: #dc2626; }
+
+  .bin.glow .bin-tank {
+    box-shadow: 0 0 0 4px rgba(34,197,94,.95), 0 0 26px rgba(34,197,94,.65), inset 0 -10px 0 rgba(0,0,0,.15);
+  }
+  .bin.shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-6px); }
+    40%{ transform: translateX(6px); }
+    60%{ transform: translateX(-4px); }
+    80%{ transform: translateX(4px); }
+  }
+  .bin.bounce .bin-tank { animation: bounce .4s ease; }
+  @keyframes bounce { 0%,100%{ transform: translateY(0);} 40%{ transform: translateY(-10px) scale(1.05);} }
+
+  /* ---------- 特效 ---------- */
+  .flyer {
+    position: absolute; z-index: 30; pointer-events: none;
+    font-size: 52px; margin-left: -26px; margin-top: -26px;
+    transition: transform .45s cubic-bezier(.4,0,.6,1), opacity .45s ease;
+  }
+  .spark {
+    position: absolute; z-index: 20; pointer-events: none;
+    width: 10px; height: 10px; border-radius: 3px;
+    animation: spark .7s ease-out forwards;
+  }
+  @keyframes spark {
+    from { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) scale(.35) rotate(200deg); opacity: 0; }
+  }
+
+  /* ---------- 遮罩 / 面板 ---------- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    background: rgba(20,26,34,.45); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .overlay.hidden { display: none; }
+  .panel {
+    background: #fffdf6; border-radius: 26px; padding: 30px 26px;
+    max-width: 360px; width: 100%; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.3);
+  }
+  .panel .big { font-size: 64px; line-height: 1; }
+  .panel h1 { font-size: 26px; font-weight: 900; margin: 10px 0 6px; }
+  .panel p { color: var(--muted); font-weight: 700; font-size: 15px; margin-bottom: 16px; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px; }
+  .legend span {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 800; color: var(--ink);
+    background: #f3efe6; padding: 5px 11px; border-radius: 999px;
+  }
+  .legend i { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+  .big-btn {
+    display: inline-block; width: 100%; padding: 13px; border: none; border-radius: 14px;
+    background: linear-gradient(135deg, #34d399, #10b981); color: #fff;
+    font-family: inherit; font-size: 17px; font-weight: 900; cursor: pointer;
+    box-shadow: 0 10px 22px rgba(16,185,129,.35);
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .big-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .big-btn:active { transform: scale(.97); }
+  .result-stats { margin: 14px 0 20px; display: flex; gap: 10px; justify-content: center; }
+  .result-stats .stat {
+    flex: 1; background: #f3efe6; border-radius: 14px; padding: 12px 8px;
+  }
+  .result-stats .num { font-size: 26px; font-weight: 900; }
+  .result-stats .lbl { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .new-record {
+    margin: 10px auto 2px;
+    font-size: 25px; font-weight: 900; letter-spacing: .03em;
+    background: linear-gradient(180deg, #ffe28a 0%, #f7b81b 55%, #e08c08 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: #e08c08;
+    animation: recordPop .55s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .new-record.hidden { display: none; }
+  @keyframes recordPop {
+    0% { transform: scale(.4); opacity: 0; }
+    60% { transform: scale(1.18); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="sky"></div>
+  <div id="ground"></div>
+  <span class="deco sun">☀️</span>
+  <span class="deco cloud c1">☁️</span>
+  <span class="deco cloud c2">☁️</span>
+
+  <!-- 亭子 -->
+  <svg class="pavilion" viewBox="0 0 320 232" aria-hidden="true">
+    <rect x="120" y="122" width="11" height="90" fill="#5b3820"/>
+    <rect x="189" y="122" width="11" height="90" fill="#5b3820"/>
+    <path d="M160 36 L288 124 L32 124 Z" fill="#c07c3a"/>
+    <path d="M160 36 L288 124 L160 124 Z" fill="#cf8b47"/>
+    <circle cx="160" cy="32" r="6" fill="#7a4312"/>
+    <path d="M32 124 Q26 118 40 109" stroke="#a05a24" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M288 124 Q294 118 280 109" stroke="#a05a24" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <rect x="70" y="126" width="13" height="90" fill="#6d4523"/>
+    <rect x="237" y="126" width="13" height="90" fill="#6d4523"/>
+    <rect x="64" y="150" width="192" height="9" rx="2" fill="#6d4523"/>
+    <rect x="46" y="216" width="228" height="14" rx="5" fill="#8a5a2b"/>
+    <rect x="58" y="224" width="204" height="8" rx="3" fill="#5b3820"/>
+  </svg>
+
+  <!-- 顶部信息 -->
+  <div id="hud">
+    <div class="pill">⭐ <b id="score">0</b></div>
+    <div class="pill" id="progress">1 / 24</div>
+    <button class="pill lang-btn" id="langBtn">中文</button>
+    <div id="lives">❤️❤️❤️</div>
+  </div>
+
+  <!-- 题目 -->
+  <div class="play-area">
+    <div id="itemCard">
+      <div class="q" id="qText">这是什么垃圾？</div>
+      <div class="emoji" id="itemEmoji">📰</div>
+      <div class="name" id="itemName">报纸</div>
+    </div>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- 垃圾桶 -->
+  <div id="bins"></div>
+
+  <!-- 开始 -->
+  <div id="startScreen" class="overlay">
+    <div class="panel">
+      <div class="big">🗑️</div>
+      <h1 id="startTitle">垃圾分类小游戏</h1>
+      <p id="startSub">看清垃圾，点下面正确的垃圾桶！</p>
+      <div class="legend" id="legend"></div>
+      <button class="big-btn" id="startBtn">▶ 开始游戏</button>
+    </div>
+  </div>
+
+  <!-- 结束 -->
+  <div id="endScreen" class="overlay hidden">
+    <div class="panel">
+      <div class="big" id="endEmoji">🎉</div>
+      <h1 id="endTitle">太棒了！</h1>
+      <p id="endMsg">你完成了全部分类</p>
+      <div class="new-record hidden" id="newRecord">破纪录！</div>
+      <div class="result-stats">
+        <div class="stat"><div class="num" id="endScore">0</div><div class="lbl" id="endScoreLbl">本次得分</div></div>
+        <div class="stat"><div class="num" id="endBest">0</div><div class="lbl" id="endBestLbl">最高纪录</div></div>
+      </div>
+      <button class="big-btn" id="againBtn">🔁 再玩一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CATEGORIES = {
+    dry:        { name: "干垃圾",     en: "Dry Waste",  color: "#4b5563", icon: "🗑️" },
+    wet:        { name: "湿垃圾",     en: "Wet Waste",  color: "#92623a", icon: "🍃" },
+    recyclable: { name: "可回收垃圾", en: "Recyclable", color: "#2563eb", icon: "♻️" },
+    hazardous:  { name: "有害垃圾",   en: "Hazardous",  color: "#dc2626", icon: "⚠️" }
+  };
+  var ORDER = ["dry", "wet", "recyclable", "hazardous"];
+
+  var ITEMS = [
+    { emoji: "📰", name: "报纸",       en: "Newspaper",         cat: "recyclable" },
+    { emoji: "📦", name: "纸箱",       en: "Cardboard Box",     cat: "recyclable" },
+    { emoji: "📚", name: "书本",       en: "Book",              cat: "recyclable" },
+    { emoji: "🧴", name: "塑料瓶",     en: "Plastic Bottle",    cat: "recyclable" },
+    { emoji: "🥫", name: "易拉罐",     en: "Soda Can",          cat: "recyclable" },
+    { emoji: "🍾", name: "玻璃瓶",     en: "Glass Bottle",      cat: "recyclable" },
+    { emoji: "👕", name: "旧衣服",     en: "Old Clothes",       cat: "recyclable" },
+
+    { emoji: "🔋", name: "电池",       en: "Battery",           cat: "hazardous" },
+    { emoji: "💊", name: "过期药品",   en: "Expired Medicine",  cat: "hazardous" },
+    { emoji: "💡", name: "灯泡",       en: "Light Bulb",        cat: "hazardous" },
+    { emoji: "🌡️", name: "水银温度计", en: "Thermometer",       cat: "hazardous" },
+    { emoji: "🎨", name: "油漆",       en: "Paint",             cat: "hazardous" },
+    { emoji: "🧪", name: "化学药剂",   en: "Chemicals",         cat: "hazardous" },
+
+    { emoji: "🍌", name: "香蕉",     en: "Banana",       cat: "wet" },
+    { emoji: "🍚", name: "剩饭",       en: "Leftover Food",     cat: "wet" },
+    { emoji: "🥬", name: "菜叶",       en: "Vegetable Leaves",  cat: "wet" },
+    { emoji: "🥚", name: "鸡蛋",     en: "Egg",          cat: "wet" },
+    { emoji: "🍎", name: "苹果",     en: "Apple",        cat: "wet" },
+    { emoji: "🐟", name: "鱼",     en: "Fish",        cat: "wet" },
+
+    { emoji: "🧻", name: "纸巾",       en: "Tissue",            cat: "dry" },
+    { emoji: "🛍️", name: "塑料袋",     en: "Plastic Bag",       cat: "dry" },
+    { emoji: "🚬", name: "香烟",       en: "Cigarette",    cat: "dry" },
+    { emoji: "🥢", name: "一次性筷子", en: "Chopsticks",        cat: "dry" },
+    { emoji: "🏺", name: "花瓶",   en: "Vase",    cat: "dry" },
+    { emoji: "🥡", name: "一次性餐盒", en: "Food Container",    cat: "dry" }
+  ];
+
+  var stage = document.getElementById("stage");
+  var binsWrap = document.getElementById("bins");
+  var itemCard = document.getElementById("itemCard");
+  var itemEmoji = document.getElementById("itemEmoji");
+  var itemName = document.getElementById("itemName");
+  var feedback = document.getElementById("feedback");
+  var scoreEl = document.getElementById("score");
+  var livesEl = document.getElementById("lives");
+  var progressEl = document.getElementById("progress");
+  var startScreen = document.getElementById("startScreen");
+  var endScreen = document.getElementById("endScreen");
+  var legendEl = document.getElementById("legend");
+  var langBtn = document.getElementById("langBtn");
+
+  var binEls = {};
+
+  // ---- 多语言 ----
+  var lang = "zh";
+  var L = {
+    zh: {
+      title: "垃圾分类小游戏", q: "这是什么垃圾？",
+      startSub: "看清垃圾，点下面正确的垃圾桶！", startBtn: "▶ 开始游戏", againBtn: "🔁 再玩一次",
+      correct: "对啦！ +10", wrong: "应该是「{c}」",
+      winTitle: "太棒了！", loseTitle: "游戏结束",
+      winMsg: "你把垃圾全部分对啦！", loseMsg: "再试一次，一定能分对！",
+      score: "本次得分", best: "最高纪录", newRecord: "破纪录！"
+    },
+    en: {
+      title: "Garbage Sorting Game", q: "What kind of garbage is this?",
+      startSub: "Look at the item and tap the correct bin!", startBtn: "▶ Start", againBtn: "🔁 Play Again",
+      correct: "Correct! +10", wrong: "It's \"{c}\"",
+      winTitle: "Great job!", loseTitle: "Game Over",
+      winMsg: "You sorted everything correctly!", loseMsg: "Try again — you can do it!",
+      score: "Your Score", best: "Best", newRecord: "New Record!"
+    }
+  };
+  function t(key) { return L[lang][key]; }
+  function catName(cat) { return lang === "zh" ? CATEGORIES[cat].name : CATEGORIES[cat].en; }
+  function itemNameOf(it) { return lang === "zh" ? it.name : it.en; }
+
+  function renderBins() {
+    binsWrap.innerHTML = "";
+    binEls = {};
+    ORDER.forEach(function (cat) {
+      var b = document.createElement("button");
+      b.className = "bin bin-" + cat;
+      b.dataset.cat = cat;
+      b.innerHTML =
+        '<span class="bin-tank"><span class="bin-symbol">' + CATEGORIES[cat].icon + '</span></span>' +
+        '<span class="bin-label">' + catName(cat) + '</span>';
+      b.addEventListener("click", function () { choose(cat); });
+      binsWrap.appendChild(b);
+      binEls[cat] = b;
+    });
+  }
+  function renderLegend() {
+    var html = "";
+    ORDER.forEach(function (cat) {
+      html += '<span><i style="background:' + CATEGORIES[cat].color + '"></i>' + catName(cat) + '</span>';
+    });
+    legendEl.innerHTML = html;
+  }
+  function applyLanguage() {
+    langBtn.textContent = (lang === "zh") ? "中文" : "EN";
+    document.title = t("title");
+    document.getElementById("startTitle").textContent = t("title");
+    document.getElementById("startSub").textContent = t("startSub");
+    document.getElementById("qText").textContent = t("q");
+    document.getElementById("startBtn").textContent = t("startBtn");
+    document.getElementById("againBtn").textContent = t("againBtn");
+    document.getElementById("endScoreLbl").textContent = t("score");
+    document.getElementById("endBestLbl").textContent = t("best");
+    document.getElementById("newRecord").textContent = t("newRecord");
+    renderLegend();
+    renderBins();
+    if (deck.length && idx < deck.length && startScreen.classList.contains("hidden") && endScreen.classList.contains("hidden")) {
+      itemName.textContent = itemNameOf(deck[idx]);
+    }
+  }
+  langBtn.addEventListener("click", function () {
+    lang = (lang === "zh") ? "en" : "zh";
+    applyLanguage();
+  });
+
+  renderBins();
+  renderLegend();
+
+  // 状态
+  var deck = [], idx = 0, score = 0, lives = 3, correct = 0, locked = false;
+  var best = 0;
+  try { best = parseInt(localStorage.getItem("garbage_best"), 10) || 0; } catch (e) { best = 0; }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function updateHUD() {
+    scoreEl.textContent = String(score);
+    var hearts = "";
+    for (var i = 0; i < 3; i++) hearts += (i < lives) ? "❤️" : "🖤";
+    livesEl.textContent = hearts;
+  }
+
+  function showItem() {
+    var it = deck[idx];
+    itemEmoji.textContent = it.emoji;
+    itemName.textContent = itemNameOf(it);
+    progressEl.textContent = (idx + 1) + " / " + deck.length;
+  }
+
+  function hideFeedback() { feedback.className = ""; }
+  function showFeedback(text, kind) {
+    feedback.textContent = text;
+    feedback.className = kind;
+    // 强制重新触发过渡
+    void feedback.offsetWidth;
+    feedback.classList.add("show");
+  }
+
+  function clearClasses() {
+    ORDER.forEach(function (cat) { binEls[cat].className = "bin bin-" + cat; });
+  }
+
+  function choose(cat) {
+    if (locked) return;
+    var it = deck[idx];
+    locked = true;
+    clearClasses();
+
+    if (cat === it.cat) {
+      score += 10; correct++;
+      itemCard.classList.add("pop");
+      showFeedback(t("correct"), "good");
+      binEls[cat].classList.add("bounce");
+      flyTo(binEls[cat], it.emoji);
+      burst();
+      beep(660, 0.08, "sine", 0.10);
+      setTimeout(function () { beep(880, 0.10, "sine", 0.08); }, 70);
+      updateHUD();
+      next(950);
+    } else {
+      lives--;
+      showFeedback(t("wrong").replace("{c}", catName(it.cat)), "bad");
+      binEls[cat].classList.add("shake");
+      binEls[it.cat].classList.add("glow");
+      beep(180, 0.18, "square", 0.08);
+      updateHUD();
+      next(1800);
+    }
+  }
+
+  function next(delay) {
+    setTimeout(function () {
+      hideFeedback();
+      clearClasses();
+      itemCard.classList.remove("pop");
+      if (lives <= 0) { endGame(false); return; }
+      idx++;
+      if (idx >= deck.length) { endGame(true); return; }
+      locked = false;
+      showItem();
+    }, delay);
+  }
+
+  function endGame(win) {
+    locked = true;
+    var newRecord = (best > 0) && (score > best);
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem("garbage_best", String(best)); } catch (e) {}
+    }
+    document.getElementById("endEmoji").textContent = win ? "🎉" : "😅";
+    document.getElementById("endTitle").textContent = win ? t("winTitle") : t("loseTitle");
+    document.getElementById("endMsg").textContent = win ? t("winMsg") : t("loseMsg");
+    document.getElementById("endScore").textContent = String(score);
+    document.getElementById("endBest").textContent = String(best);
+    document.getElementById("newRecord").classList.toggle("hidden", !newRecord);
+    endScreen.classList.remove("hidden");
+  }
+
+  function startGame() {
+    deck = shuffle(ITEMS.slice());
+    idx = 0; score = 0; lives = 3; correct = 0; locked = false;
+    clearClasses();
+    hideFeedback();
+    startScreen.classList.add("hidden");
+    endScreen.classList.add("hidden");
+    updateHUD();
+    showItem();
+  }
+
+  // ---- 特效 ----
+  function centerOf(el) {
+    var r = el.getBoundingClientRect();
+    var s = stage.getBoundingClientRect();
+    return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2 };
+  }
+  function flyTo(binEl, emoji) {
+    var from = centerOf(itemEmoji);
+    var to = centerOf(binEl.querySelector(".bin-tank"));
+    var el = document.createElement("span");
+    el.className = "flyer";
+    el.textContent = emoji;
+    el.style.left = from.x + "px";
+    el.style.top = from.y + "px";
+    stage.appendChild(el);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.style.transform = "translate(" + (to.x - from.x) + "px," + (to.y - from.y) + "px) scale(.45)";
+        el.style.opacity = "0";
+      });
+    });
+    setTimeout(function () { el.remove(); }, 520);
+  }
+  function burst() {
+    var c = centerOf(itemCard);
+    var colors = ["#f59e0b", "#22c55e", "#3b82f6", "#ef4444", "#a855f7"];
+    for (var i = 0; i < 16; i++) {
+      var s = document.createElement("span");
+      s.className = "spark";
+      s.style.left = c.x + "px";
+      s.style.top = c.y + "px";
+      var a = Math.random() * Math.PI * 2;
+      var d = 46 + Math.random() * 80;
+      s.style.setProperty("--dx", Math.cos(a) * d + "px");
+      s.style.setProperty("--dy", Math.sin(a) * d + "px");
+      s.style.background = colors[i % colors.length];
+      stage.appendChild(s);
+      setTimeout(function () { s.remove(); }, 720);
+    }
+  }
+
+  // ---- 音效 ----
+  var AC = null;
+  function audio() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+    return AC;
+  }
+  function beep(freq, dur, type, vol) {
+    var ac = audio(); if (!ac) return;
+    if (ac.resume) ac.resume();
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || "sine";
+    o.frequency.value = freq;
+    g.gain.value = vol || 0.1;
+    o.connect(g); g.connect(ac.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.stop(ac.currentTime + dur);
+  }
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("againBtn").addEventListener("click", startGame);
+})();
+</script>
+</body>
+</html>

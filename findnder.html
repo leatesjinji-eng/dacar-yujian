@@ -1,0 +1,69 @@
+<title>BallDefender</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(120% 120% at 50% 0%, #1b2450 0%, #111a38 55%, #0a1024 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: "Rajdhani", "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #stage { position: relative; line-height: 0; }
+  #stage.zoom {
+    position: fixed; inset: 0; z-index: 9990;
+    background: #0a1024;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas {
+    display: block;
+    border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(103,232,249,.10);
+    touch-action: none;
+    cursor: crosshair;
+  }
+  #stage.zoom canvas { border-radius: 0; box-shadow: none; }
+
+  /* ---- 工具栏：全屏 / 点赞 / 吐槽 ---- */
+  .gamebar {
+    position: fixed; top: 12px; right: 12px; z-index: 9999;
+    display: flex; gap: 6px;
+  }
+  .gbtn {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; padding: 0 12px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+    background: rgba(15,23,42,.6);
+    color: #fff;
+    font-family: "Rajdhani", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    transition: transform .12s ease, background .12s ease;
+  }
+  .gbtn:hover { background: rgba(15,23,42,.82); transform: translateY(-1px); }
+  .gbtn:active { transform: scale(.95); }
+  .gbtn .cnt { font-variant-numeric: tabular-nums; }
+  .gbtn:disabled { opacity: .55; cursor: not-allowed; transform: none; background: rgba(15,23,42,.5); }
+  .gbtn:disabled:hover { transform: none; }
+  .gbtn.voted { background: rgba(99,102,241,.8); border-color: rgba(255,255,255,.55); }
+</style>
+
+<div id="stage"><canvas id="game"></canvas></div>
+
+<div class="gamebar">
+  <button class="gbtn" id="fsBtn" title="放大">⛶</button>
+  <button class="gbtn" id="likeBtn" title="点赞">👍 <span class="cnt" id="likeCnt">0</span></button>
+  <button class="gbtn" id="dislikeBtn" title="吐槽">👎 <span class="cnt" id="dislikeCnt">0</span></button>
+</div>
+
+<script src="findnder.js"></script>
+
+

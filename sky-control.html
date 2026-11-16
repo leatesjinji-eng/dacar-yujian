@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>天空塔台 · Sky Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef2f9;
+    --surface: #ffffff;
+    --ink: #1e293b;
+    --muted: #64748b;
+    --accent: #6366f1;
+    --accent-2: #22d3ee;
+    --border: #e4e9f2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .screen { min-height: 100vh; }
+
+  /* ---------- MENU ---------- */
+  .menu-inner { max-width: 980px; margin: 0 auto; padding: 48px 22px 60px; text-align: center; }
+  .logo { font-size: clamp(30px, 5vw, 44px); font-weight: 900; letter-spacing: -.03em; }
+  .logo .logo-mark {
+    display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); font-size: 26px; margin-right: 10px; vertical-align: -6px;
+  }
+  .tagline { color: var(--muted); font-weight: 700; margin-top: 4px; font-size: 16px; }
+  .tip { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .progress { display: inline-block; margin: 18px 0 6px; font-size: 13px; font-weight: 800; color: var(--accent); background: #eef0ff; padding: 5px 14px; border-radius: 999px; }
+
+  .level-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 16px; margin-top: 22px; text-align: left;
+  }
+  .level-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 8px 22px rgba(30,41,59,.07); transition: transform .15s ease, box-shadow .15s ease;
+    text-align: left; padding: 0;
+  }
+  .level-card:not(.locked):hover { transform: translateY(-5px); box-shadow: 0 16px 34px rgba(30,41,59,.15); }
+  .level-card.locked { filter: grayscale(.9) opacity(.6); cursor: not-allowed; }
+  .thumb { aspect-ratio: 16/10; display: grid; place-items: center; position: relative; }
+  .thumb .icon { font-size: 52px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.25)); }
+  .thumb .lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; background: rgba(15,23,42,.25); }
+  .lcinfo { padding: 12px 14px 14px; }
+  .lcinfo h3 { font-size: 16px; font-weight: 800; }
+  .lcinfo span { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+  /* ---------- GAME ---------- */
+  #gameScreen { display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .game-wrap { position: relative; line-height: 0; }
+  .game-wrap.zoom {
+    position: fixed; inset: 0; z-index: 9990;
+    background: #0a1024;
+    display: flex; align-items: center; justify-content: center;
+  }
+  canvas { display: block; border-radius: 18px; box-shadow: 0 24px 60px rgba(30,41,59,.28); touch-action: none; cursor: crosshair; }
+  .game-wrap.zoom canvas { border-radius: 0; box-shadow: none; }
+
+  .overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.55); border-radius: 18px; backdrop-filter: blur(3px);
+  }
+  .panel {
+    background: var(--surface); border-radius: 22px; padding: 34px 38px; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35); max-width: 340px; width: calc(100% - 40px);
+  }
+  .panel-icon { font-size: 52px; margin-bottom: 6px; }
+  .panel h2 { font-size: 26px; font-weight: 900; letter-spacing: -.02em; }
+  .panel p { color: var(--muted); font-size: 15px; margin: 6px 0 20px; }
+  .panel-actions { display: flex; gap: 10px; justify-content: center; }
+  .btn {
+    border: none; border-radius: 999px; padding: 11px 22px; font-weight: 800; font-size: 15px;
+    background: #eef1f9; color: var(--ink); transition: transform .12s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+
+  /* ---------- 工具栏：全屏 / 点赞 / 吐槽 ---------- */
+  .gamebar {
+    position: fixed; top: 12px; right: 12px; z-index: 9999;
+    display: flex; gap: 6px;
+  }
+  .gbtn {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; padding: 0 12px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+    background: rgba(15,23,42,.6);
+    color: #fff;
+    font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    transition: transform .12s ease, background .12s ease;
+  }
+  .gbtn:hover { background: rgba(15,23,42,.82); transform: translateY(-1px); }
+  .gbtn:active { transform: scale(.95); }
+  .gbtn .cnt { font-variant-numeric: tabular-nums; }
+  .gbtn:disabled { opacity: .55; cursor: not-allowed; transform: none; background: rgba(15,23,42,.5); }
+  .gbtn:disabled:hover { transform: none; }
+  .gbtn.voted { background: rgba(99,102,241,.8); border-color: rgba(255,255,255,.55); }
+</style>
+</head>
+<body>
+
+<div class="gamebar">
+  <button class="gbtn" id="fsBtn" title="放大">⛶</button>
+  <button class="gbtn" id="likeBtn" title="点赞">👍 <span class="cnt" id="likeCnt">0</span></button>
+  <button class="gbtn" id="dislikeBtn" title="吐槽">👎 <span class="cnt" id="dislikeCnt">0</span></button>
+</div>
+
+<div id="menu" class="screen">
+  <div class="menu-inner">
+    <h1 class="logo"><span class="logo-mark">🛫</span>天空塔台</h1>
+    <p class="tagline">Sky Control · 塔台调度小游戏</p>
+    <p class="tip">按住飞机拖线到跑道，沿箭头方向降落 · 直升机停进「H」停机坪 · 反方向扣 1 架，相撞扣 2 架</p>
+    <div class="progress"><span id="progress"></span></div>
+    <div class="level-grid" id="levelGrid"></div>
+  </div>
+</div>
+
+<div id="gameScreen" class="screen" style="display:none">
+  <div class="game-wrap">
+    <canvas id="game"></canvas>
+    <div class="overlay" id="overlay" style="display:none">
+      <div class="panel">
+        <div class="panel-icon" id="ovIcon">🎉</div>
+        <h2 id="ovTitle">任务完成！</h2>
+        <p id="ovSub">已解锁下一关</p>
+        <div class="panel-actions">
+          <button class="btn primary" id="ovBtn1">下一关</button>
+          <button class="btn" id="ovBtn2">返回选关</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+
+  var W = 960, H = 560;
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+  var TWO_PI = Math.PI * 2;
+
+  // ---------- Levels ----------
+  var LEVELS = [
+    { id: "farm",    name: "农场", icon: "🚜", target: 6,  runways: 2, spawn: 2.6, speed: 70 },
+    { id: "canyon",  name: "峡谷", icon: "🏜️", target: 8,  runways: 2, spawn: 2.2, speed: 85 },
+    { id: "city",    name: "城市", icon: "🏙️", target: 10, runways: 3, spawn: 1.9, speed: 100 },
+    { id: "snow",    name: "雪山", icon: "🏔️", target: 12, runways: 2, spawn: 1.7, speed: 115 },
+    { id: "volcano", name: "火山", icon: "🌋", target: 15, runways: 3, spawn: 1.5, speed: 130 }
+  ];
+
+  var THEMES = {
+    farm:    { ground: ["#8fce6b", "#5ea340"], runway: "#e6d8b0", line: "#ffffff" },
+    canyon:  { ground: ["#e0a060", "#c06a3f"], runway: "#f0d9a4", line: "#ffffff" },
+    city:    { ground: ["#9fb0c0", "#66788a"], runway: "#3c4550", line: "#ffffff" },
+    snow:    { ground: ["#eef6ff", "#c0d6e8"], runway: "#8fb8d6", line: "#ffffff" },
+    volcano: { ground: ["#3a2e2a", "#241c19"], runway: "#5a5340", line: "#ffb84d" }
+  };
+
+  var PLANE_COLORS = ["#e11d48", "#2563eb", "#7c3aed", "#0d9488", "#ea580c", "#db2777"];
+  var COLLIDE_R = 18;
+
+  // ---------- State ----------
+  // 一次性重置：把所有进度回到初始（仅「农场」解锁）
+  try {
+    if (!localStorage.getItem("skycontrol_reset_v1")) {
+      localStorage.setItem("skycontrol_unlocked", "0");
+      localStorage.setItem("skycontrol_like", "0");
+      localStorage.setItem("skycontrol_dislike", "0");
+      localStorage.setItem("skycontrol_reset_v1", "1");
+    }
+  } catch (e) {}
+  var unlocked = 0;
+  try { unlocked = parseInt(localStorage.getItem("skycontrol_unlocked"), 10) || 0; } catch (e) { unlocked = 0; }
+
+  var muted = false;
+  var gameActive = false;
+
+  var game = {
+    levelIndex: 0, planes: [], runways: [], landed: 0, target: 0,
+    done: false, spawnTimer: 0, time: 0, drawing: null
+  };
+  var level = LEVELS[0];
+  var ambient = [];
+  var scene = {};
+  var floaters = [];
+  var particles = [];
+
+  // ---------- Helpers ----------
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function pickColor() { return PLANE_COLORS[Math.floor(Math.random() * PLANE_COLORS.length)]; }
+  function shade(hex, amt) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = Math.max(0, Math.min(255, ((n >> 16) & 255) + amt));
+    var g = Math.max(0, Math.min(255, ((n >> 8) & 255) + amt));
+    var b = Math.max(0, Math.min(255, (n & 255) + amt));
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+  function roundRect(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // ---------- Resize / pointer ----------
+  function resize() {
+    var wrap = document.querySelector(".game-wrap");
+    var zoomed = wrap && wrap.classList.contains("zoom");
+    var availW = zoomed ? window.innerWidth : window.innerWidth - 24;
+    var availH = zoomed ? window.innerHeight : window.innerHeight - 24;
+    var scale = Math.min(availW / W, availH / H);
+    canvas.style.width = Math.floor(W * scale) + "px";
+    canvas.style.height = Math.floor(H * scale) + "px";
+    canvas.width = Math.floor(W * scale * DPR);
+    canvas.height = Math.floor(H * scale * DPR);
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+
+  function pointerPos(e) {
+    var r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+  }
+
+  // ---------- Audio ----------
+  var AC = null;
+  function audio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } } return AC; }
+  function beep(freq, dur, type, vol) {
+    if (muted) return;
+    var ac = audio(); if (!ac) return;
+    if (ac.resume) ac.resume();
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.value = vol || 0.12;
+    o.connect(g); g.connect(ac.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.stop(ac.currentTime + dur);
+  }
+  function soundClick() { beep(600, 0.06, "sine", 0.08); }
+  function soundSpawn() { beep(300, 0.08, "triangle", 0.04); }
+  function soundLand() { beep(700, 0.09, "sine", 0.1); setTimeout(function () { beep(1000, 0.1, "sine", 0.09); }, 70); }
+  function soundComplete() { beep(660, 0.1, "sine", 0.1); setTimeout(function () { beep(880, 0.12, "sine", 0.1); }, 90); setTimeout(function () { beep(1100, 0.14, "sine", 0.1); }, 180); }
+  function soundCrash() { beep(140, 0.3, "sawtooth", 0.13); beep(88, 0.4, "square", 0.1); }
+  function soundWrong() { beep(220, 0.15, "sawtooth", 0.1); beep(150, 0.22, "square", 0.08); }
+
+  // ---------- Runways ----------
+  function makeRunways(n) {
+    var arr = [], cx = W / 2, cy = H * 0.70, len = 230, width = 34;
+    arr.push({ cx: cx, cy: cy, len: len, width: width, angle: 0.5, dirSign: 1 });
+    arr.push({ cx: cx, cy: cy, len: len, width: width, angle: -0.5, dirSign: -1 });
+    if (n >= 3) arr.push({ cx: W * 0.5, cy: H * 0.22, len: 210, width: width, angle: 0, dirSign: 1 });
+    return arr;
+  }
+  function isOnRunway(x, y) {
+    for (var i = 0; i < game.runways.length; i++) {
+      var r = game.runways[i];
+      var dx = x - r.cx, dy = y - r.cy;
+      var lx = dx * Math.cos(-r.angle) - dy * Math.sin(-r.angle);
+      var ly = dx * Math.sin(-r.angle) + dy * Math.cos(-r.angle);
+      if (Math.abs(lx) <= r.len / 2 && Math.abs(ly) <= r.width / 2) return r;
+    }
+    return null;
+  }
+  function isOnHelipad(x, y) {
+    var h = game.helipad;
+    if (!h) return false;
+    var dx = x - h.x, dy = y - h.y;
+    return dx * dx + dy * dy <= h.r * h.r;
+  }
+  function clearSnowAt(x, y) {
+    for (var i = 0; i < game.runways.length; i++) {
+      var r = game.runways[i];
+      if (!r.snow) continue;
+      var dx = x - r.cx, dy = y - r.cy;
+      var lx = dx * Math.cos(-r.angle) - dy * Math.sin(-r.angle);
+      var ly = dx * Math.sin(-r.angle) + dy * Math.cos(-r.angle);
+      if (Math.abs(ly) > r.width / 2) continue;
+      var t = (lx + r.len / 2) / r.len;
+      if (t < 0 || t > 1) continue;
+      var idx = Math.round(t * (r.snow.length - 1));
+      for (var b = idx - 2; b <= idx + 2; b++) {
+        if (b >= 0 && b < r.snow.length) r.snow[b] = 0;
+      }
+    }
+  }
+  function isRunwaySnowyAt(r, x, y) {
+    if (!r.snow) return false;
+    var dx = x - r.cx, dy = y - r.cy;
+    var lx = dx * Math.cos(-r.angle) - dy * Math.sin(-r.angle);
+    var t = (lx + r.len / 2) / r.len;
+    if (t < 0 || t > 1) return false;
+    var idx = Math.round(t * (r.snow.length - 1));
+    for (var b = idx - 1; b <= idx + 1; b++) {
+      if (b >= 0 && b < r.snow.length && r.snow[b] > 0.02) return true;
+    }
+    return false;
+  }
+
+  // ---------- Ambient (snow / embers) ----------
+  function initAmbient(i) {
+    ambient = [];
+    var id = LEVELS[i].id;
+    if (id === "snow") for (var k = 0; k < 90; k++) ambient.push({ x: Math.random() * W, y: Math.random() * H, r: rand(1.5, 4), s: rand(26, 56), t: Math.random() * TWO_PI });
+    else if (id === "volcano") for (var k2 = 0; k2 < 35; k2++) ambient.push({ x: Math.random() * W, y: Math.random() * H, r: rand(1, 2.5), s: rand(18, 42), t: Math.random() * TWO_PI });
+  }
+  function initScene(i) {
+    scene = {};
+    var id = LEVELS[i].id;
+    if (id === "farm") {
+      scene.trees = [];
+      for (var t = 0; t < 7; t++) scene.trees.push({ x: rand(W * 0.2, W * 0.72), y: rand(H * 0.14, H * 0.62), r: rand(10, 16) });
+    } else if (id === "canyon") {
+      scene.rocks = [];
+      for (var k = 0; k < 9; k++) scene.rocks.push({ x: rand(W * 0.05, W * 0.95), y: rand(H * 0.62, H * 0.96), r: rand(5, 10) });
+    } else if (id === "snow") {
+      scene.pines = [];
+      for (var k2 = 0; k2 < 12; k2++) scene.pines.push({ x: rand(W * 0.1, W * 0.9), y: rand(H * 0.42, H * 0.9), r: rand(9, 15) });
+    } else if (id === "volcano") {
+      scene.rocks = [];
+      var vcx = W * 0.78, vcy = H * 0.82;
+      for (var k4 = 0; k4 < 14; k4++) {
+        var rr = { x: rand(W * 0.04, W * 0.96), y: rand(H * 0.06, H * 0.94), r: rand(6, 13) };
+        var tries = 0;
+        while ((isOnRunway(rr.x, rr.y) || Math.hypot(rr.x - vcx, rr.y - vcy) < 62) && tries < 24) {
+          rr = { x: rand(W * 0.04, W * 0.96), y: rand(H * 0.06, H * 0.94), r: rand(6, 13) };
+          tries++;
+        }
+        scene.rocks.push(rr);
+      }
+      // 禁飞区（俯视）：火山口 + 熔岩流，飞机飞过会扣分
+      scene.hazards = [{ x: vcx, y: vcy, r: 60 }];
+      var flw = [
+        { w: 26, c: [vcx + 90, vcy + 60], e: [vcx + 128, vcy + 132] },
+        { w: 20, c: [vcx - 105, vcy + 72], e: [vcx - 148, vcy + 128] },
+        { w: 22, c: [vcx + 72, vcy - 62], e: [vcx + 104, vcy - 146] },
+        { w: 15, c: [vcx - 62, vcy - 84], e: [vcx - 96, vcy - 168] }
+      ];
+      for (var fi = 0; fi < flw.length; fi++) {
+        var fl = flw[fi];
+        for (var tt = 0; tt <= 8; tt++) {
+          var u = tt / 8, iu = 1 - u;
+          var qx = iu * iu * vcx + 2 * iu * u * fl.c[0] + u * u * fl.e[0];
+          var qy = iu * iu * vcy + 2 * iu * u * fl.c[1] + u * u * fl.e[1];
+          scene.hazards.push({ x: qx, y: qy, r: fl.w * 0.55 + 4 });
+        }
+      }
+    }
+  }
+  function updateAmbient(dt) {
+    var id = LEVELS[game.levelIndex].id;
+    for (var i = 0; i < ambient.length; i++) {
+      var a = ambient[i];
+      if (id === "snow") { a.y += a.s * dt; a.x += Math.sin(a.t + game.time * 2) * 0.3; if (a.y > H) { a.y = -4; a.x = Math.random() * W; } }
+      else if (id === "volcano") { a.y -= a.s * dt; a.x += Math.sin(a.t) * 0.4; if (a.y < -4) { a.y = H + 4; a.x = Math.random() * W; } }
+    }
+  }
+  function updateSnow(dt) {
+    if (LEVELS[game.levelIndex].id !== "snow") return;
+    game.snowTimer -= dt;
+    if (game.snowTimer <= 0) {
+      game.snowTimer = 30;
+      for (var i = 0; i < game.runways.length; i++) {
+        var r = game.runways[i];
+        if (!r.snow) continue;
+        for (var c = 0; c < r.snow.length; c++) r.snow[c] = 1;
+      }
+      addFloater(W / 2, H * 0.28, "❄ 跑道又被雪覆盖了", "#1e40af");
+      beep(420, 0.12, "sine", 0.05);
+      setTimeout(function () { beep(300, 0.16, "sine", 0.05); }, 100);
+    }
+  }
+
+  // ---------- Planes ----------
+  function spawnPlane() {
+    var roll = Math.random();
+    var type, mult;
+    if (roll < 0.30) { type = "fighter"; mult = 1; }
+    else if (roll < 0.55) { type = "airliner"; mult = 0.78; }
+    else if (roll < 0.80) { type = "heli"; mult = 0.55; }
+    else { type = "glider"; mult = 0.40; }
+    var speed = level.speed * mult;
+    var p = { path: [], pathI: 0, status: "flying", speed: speed, type: type, color: pickColor(), life: 0, landT: 0, x: 0, y: 0, vx: 0, vy: 0, angle: 0 };
+    var side = Math.random(), vx, vy;
+    if (side < 0.4) { p.x = -30; p.y = rand(60, H - 130); vx = level.speed; vy = rand(-level.speed * 0.25, level.speed * 0.25); }
+    else if (side < 0.8) { p.x = W + 30; p.y = rand(60, H - 130); vx = -level.speed; vy = rand(-level.speed * 0.25, level.speed * 0.25); }
+    else { p.x = rand(90, W - 90); p.y = -30; vx = rand(-level.speed * 0.3, level.speed * 0.3); vy = level.speed; }
+    var sp = Math.hypot(vx, vy) || 1;
+    p.vx = vx / sp * speed; p.vy = vy / sp * speed;
+    p.angle = Math.atan2(p.vy, p.vx);
+    game.planes.push(p);
+    soundSpawn();
+  }
+
+  function movePlanes(dt) {
+    for (var i = game.planes.length - 1; i >= 0; i--) {
+      var p = game.planes[i];
+      p.life += dt;
+
+      if (p.status === "landing") {
+        p.landT += dt;
+        if (p.landT >= 0.55) {
+          game.planes.splice(i, 1);
+          game.landed++;
+          addFloater(p.x, p.y, "+1", "#ffffff");
+          soundLand();
+          if (game.landed >= game.target) completeLevel();
+        }
+        continue;
+      }
+
+      if (p.status === "taxi") {
+        p.x += p.taxiDirX * p.taxiSpeed * dt;
+        p.y += p.taxiDirY * p.taxiSpeed * dt;
+        p.vx = p.taxiDirX * p.taxiSpeed;
+        p.vy = p.taxiDirY * p.taxiSpeed;
+        p.angle = Math.atan2(p.taxiDirY, p.taxiDirX);
+        var rw = p.taxiRunway;
+        var tdx = p.x - rw.cx, tdy = p.y - rw.cy;
+        var lx = tdx * Math.cos(-rw.angle) - tdy * Math.sin(-rw.angle);
+        if (rw.dirSign * lx >= rw.len / 2) {
+          game.planes.splice(i, 1);
+          game.landed++;
+          addFloater(p.x, p.y, "+1", "#ffffff");
+          soundLand();
+          if (game.landed >= game.target) completeLevel();
+        }
+        continue;
+      }
+
+      if (p.path.length > 0 && p.pathI < p.path.length) {
+        var t = p.path[p.pathI];
+        var dx = t.x - p.x, dy = t.y - p.y;
+        var d = Math.hypot(dx, dy);
+        if (d <= p.speed * dt) {
+          p.x = t.x; p.y = t.y; p.pathI++;
+          if (p.pathI >= p.path.length) {
+            var didLand = false;
+            if (p.type === "heli") {
+              if (isOnHelipad(p.x, p.y)) { p.status = "landing"; p.landT = 0; p.vx = 0; p.vy = 0; didLand = true; }
+            } else {
+              var runway = isOnRunway(p.x, p.y);
+              if (runway) {
+                var hl = Math.hypot(p.vx, p.vy) || 1;
+                var hx = p.vx / hl, hy = p.vy / hl;
+                var dxd = Math.cos(runway.angle) * runway.dirSign;
+                var dyd = Math.sin(runway.angle) * runway.dirSign;
+                if (hx * dxd + hy * dyd > 0) {
+                  if (isRunwaySnowyAt(runway, p.x, p.y)) {
+                    addFloater(p.x, p.y, "❄ 跑道有雪", "#1e40af");
+                    beep(340, 0.12, "sine", 0.05);
+                  } else {
+                    p.status = "taxi"; p.taxiRunway = runway;
+                    p.taxiDirX = dxd; p.taxiDirY = dyd; p.taxiSpeed = 110;
+                    didLand = true;
+                  }
+                }
+                else { wrongLand(p, runway); game.planes.splice(i, 1); continue; }
+              }
+            }
+            if (!didLand) {
+              var a = p.path[p.path.length - 1], b = p.path[p.path.length - 2] || a;
+              var ddx = a.x - b.x, ddy = a.y - b.y, len = Math.hypot(ddx, ddy) || 1;
+              p.vx = ddx / len * p.speed; p.vy = ddy / len * p.speed;
+              p.path = []; p.pathI = 0;
+            }
+          }
+        } else {
+          var nx = dx / d, ny = dy / d;
+          p.vx = nx * p.speed; p.vy = ny * p.speed;
+          p.x += p.vx * dt; p.y += p.vy * dt;
+        }
+      } else {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+      }
+
+      p.angle = Math.atan2(p.vy, p.vx);
+
+      if (p.x < -70 || p.x > W + 70 || p.y < -70 || p.y > H + 70) game.planes.splice(i, 1);
+    }
+  }
+
+  function checkCollisions() {
+    for (var i = 0; i < game.planes.length; i++) {
+      for (var j = i + 1; j < game.planes.length; j++) {
+        var a = game.planes[i], b = game.planes[j];
+        if (a.status === "landing" || b.status === "landing") continue;
+        if (a.life < 0.5 || b.life < 0.5) continue;
+        var dx = a.x - b.x, dy = a.y - b.y;
+        if (dx * dx + dy * dy < COLLIDE_R * COLLIDE_R) { handleCollision(a, b); return; }
+      }
+    }
+  }
+
+  function handleCollision(a, b) {
+    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    game.landed = Math.max(0, game.landed - 2);
+    explode(mx, my, "#f97316");
+    addFloater(mx, my - 16, "-2", "#fca5a5");
+    soundCrash();
+    var ia = game.planes.indexOf(a); if (ia >= 0) game.planes.splice(ia, 1);
+    var ib = game.planes.indexOf(b); if (ib >= 0) game.planes.splice(ib, 1);
+  }
+  function wrongLand(p, runway) {
+    game.landed = Math.max(0, game.landed - 1);
+    explode(p.x, p.y, "#ef4444");
+    addFloater(p.x, p.y - 16, "-1", "#fca5a5");
+    soundWrong();
+  }
+  function handleHazard(p) {
+    game.landed = Math.max(0, game.landed - 2);
+    explode(p.x, p.y, "#ff6a3d");
+    addFloater(p.x, p.y - 16, "🌋 -2", "#fdba74");
+    soundCrash();
+    var i = game.planes.indexOf(p); if (i >= 0) game.planes.splice(i, 1);
+  }
+  function checkHazards() {
+    if (LEVELS[game.levelIndex].id !== "volcano" || !scene.hazards) return;
+    for (var i = game.planes.length - 1; i >= 0; i--) {
+      var p = game.planes[i];
+      if (p.status === "landing" || p.status === "taxi") continue;
+      if (p.life < 0.5) continue;
+      for (var h = 0; h < scene.hazards.length; h++) {
+        var hz = scene.hazards[h];
+        var dx = p.x - hz.x, dy = p.y - hz.y;
+        var rr = hz.r + 12;
+        if (dx * dx + dy * dy < rr * rr) { handleHazard(p); break; }
+      }
+    }
+  }
+
+  function completeLevel() {
+    if (game.done) return;
+    game.done = true;
+    var next = game.levelIndex + 1;
+    if (next < LEVELS.length && next > unlocked) {
+      unlocked = next;
+      try { localStorage.setItem("skycontrol_unlocked", String(unlocked)); } catch (e) {}
+    }
+    soundComplete();
+    showOverlay("complete");
+  }
+
+  // ---------- Floaters ----------
+  function addFloater(x, y, text, color) { floaters.push({ x: x, y: y, text: text, color: color, life: 1 }); }
+  function updateFloaters(dt) {
+    for (var i = floaters.length - 1; i >= 0; i--) { var f = floaters[i]; f.life -= dt; f.y -= 30 * dt; if (f.life <= 0) floaters.splice(i, 1); }
+  }
+  function drawFloaters() {
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (var i = 0; i < floaters.length; i++) {
+      var f = floaters[i];
+      ctx.globalAlpha = Math.max(0, f.life);
+      ctx.fillStyle = f.color; ctx.font = "800 16px Nunito, system-ui";
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Particles ----------
+  function explode(x, y, color) {
+    for (var i = 0; i < 18; i++) {
+      var a = Math.random() * TWO_PI, sp = rand(60, 220);
+      particles.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.6, color: color });
+    }
+  }
+  function updateParticles(dt) {
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var pt = particles[i];
+      pt.life -= dt; pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vy += 60 * dt;
+      if (pt.life <= 0) particles.splice(i, 1);
+    }
+  }
+  function drawParticles() {
+    for (var i = 0; i < particles.length; i++) {
+      var pt = particles[i];
+      ctx.globalAlpha = Math.max(0, pt.life / 0.6);
+      ctx.fillStyle = pt.color;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, TWO_PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Update / loop ----------
+  function update(dt) {
+    game.time += dt;
+    updateAmbient(dt);
+    updateSnow(dt);
+    updateFloaters(dt);
+    updateParticles(dt);
+
+    game.spawnTimer -= dt;
+    if (game.spawnTimer <= 0 && game.planes.length < 14) {
+      spawnPlane();
+      game.spawnTimer = Math.max(1.1, level.spawn - game.time * 0.015);
+    }
+
+    movePlanes(dt);
+    checkCollisions();
+    checkHazards();
+    if (game.drawing && game.planes.indexOf(game.drawing.plane) < 0) game.drawing = null;
+  }
+
+  // ---------- Render ----------
+  function render() {
+    drawBackground();
+    for (var i = 0; i < game.runways.length; i++) drawRunway(game.runways[i]);
+    drawHelipad();
+    drawSnowLayer();
+    for (var j = 0; j < game.planes.length; j++) drawPath(game.planes[j]);
+    for (var k = 0; k < game.planes.length; k++) drawPlane(game.planes[k]);
+    if (game.drawing) drawDrawingPath();
+    drawAmbient();
+    drawParticles();
+    drawFloaters();
+    drawHUD();
+  }
+
+  function drawBackground() {
+    var th = THEMES[LEVELS[game.levelIndex].id];
+    var id = LEVELS[game.levelIndex].id;
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, th.ground[0]); g.addColorStop(1, th.ground[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    if (id === "farm") drawFarm(th);
+    else if (id === "canyon") drawCanyon(th);
+    else if (id === "city") drawCity(th);
+    else if (id === "snow") drawSnow(th);
+    else if (id === "volcano") drawVolcano(th);
+
+    var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.95);
+    vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,.16)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  }
+
+  function tree(x, y, r) {
+    ctx.fillStyle = "#2f7d3a"; ctx.beginPath(); ctx.arc(x, y, r, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "#256b30"; ctx.beginPath(); ctx.arc(x - r * 0.2, y - r * 0.2, r * 0.55, 0, TWO_PI); ctx.fill();
+  }
+  function pine(x, y, r) {
+    ctx.fillStyle = "#2f6b3a"; ctx.beginPath(); ctx.moveTo(x, y - r * 1.6); ctx.lineTo(x - r, y); ctx.lineTo(x + r, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#3a7d46"; ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x - r * 0.7, y + r * 0.6); ctx.lineTo(x + r * 0.7, y + r * 0.6); ctx.closePath(); ctx.fill();
+  }
+
+  function drawFarm(th) {
+    ctx.fillStyle = "rgba(255,255,255,.05)";
+    for (var i = 0; i < W; i += 90) ctx.fillRect(i, 0, 45, H);
+    ctx.fillStyle = "#7dd3fc"; ctx.beginPath(); ctx.ellipse(W * 0.83, H * 0.28, 95, 58, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "#a5e2ff"; ctx.beginPath(); ctx.ellipse(W * 0.81, H * 0.27, 62, 36, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "#b91c1c"; roundRect(W * 0.10, H * 0.16, 112, 92, 8); ctx.fill();
+    ctx.fillStyle = "#7f1d1d"; ctx.fillRect(W * 0.10 + 8, H * 0.16 + 8, 96, 76);
+    ctx.fillStyle = "#fff"; ctx.fillRect(W * 0.10 + 42, H * 0.16 + 46, 30, 46);
+    ctx.fillStyle = "#94a3b8"; ctx.beginPath(); ctx.arc(W * 0.10 + 56, H * 0.16 - 26, 22, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "#e2e8f0"; ctx.beginPath(); ctx.arc(W * 0.10 + 56, H * 0.16 - 26, 12, 0, TWO_PI); ctx.fill();
+    for (var t = 0; t < scene.trees.length; t++) tree(scene.trees[t].x, scene.trees[t].y, scene.trees[t].r);
+  }
+  function drawCanyon(th) {
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = "#60a5fa"; ctx.lineWidth = 34;
+    ctx.beginPath(); ctx.moveTo(-20, H * 0.74); ctx.bezierCurveTo(W * 0.25, H * 0.55, W * 0.45, H * 0.9, W * 0.7, H * 0.62); ctx.bezierCurveTo(W * 0.85, H * 0.48, W * 0.95, H * 0.55, W + 20, H * 0.4); ctx.stroke();
+    ctx.strokeStyle = "#93c5fd"; ctx.lineWidth = 18;
+    ctx.beginPath(); ctx.moveTo(-20, H * 0.74); ctx.bezierCurveTo(W * 0.25, H * 0.55, W * 0.45, H * 0.9, W * 0.7, H * 0.62); ctx.bezierCurveTo(W * 0.85, H * 0.48, W * 0.95, H * 0.55, W + 20, H * 0.4); ctx.stroke();
+    var mesas = [[0.14, 0.20, 120, 70], [0.55, 0.14, 150, 80], [0.80, 0.28, 130, 75], [0.34, 0.40, 110, 65]];
+    for (var m = 0; m < mesas.length; m++) {
+      var mm = mesas[m];
+      ctx.fillStyle = "#b4532e"; roundRect(W * mm[0], H * mm[1], mm[2], mm[3], 14); ctx.fill();
+      ctx.fillStyle = "#c96a3f"; roundRect(W * mm[0] + 6, H * mm[1] + 6, mm[2] - 12, mm[3] - 12, 10); ctx.fill();
+    }
+    ctx.fillStyle = "#9a6b4f";
+    for (var k = 0; k < scene.rocks.length; k++) { var rk = scene.rocks[k]; ctx.beginPath(); ctx.arc(rk.x, rk.y, rk.r, 0, TWO_PI); ctx.fill(); }
+  }
+  function drawCity(th) {
+    ctx.strokeStyle = "rgba(255,255,255,.13)"; ctx.lineWidth = 16; ctx.lineCap = "butt";
+    ctx.beginPath();
+    for (var rx = W * 0.2; rx < W; rx += W * 0.25) { ctx.moveTo(rx, 0); ctx.lineTo(rx, H); }
+    for (var ry = H * 0.22; ry < H; ry += H * 0.24) { ctx.moveTo(0, ry); ctx.lineTo(W, ry); }
+    ctx.stroke();
+    var bld = [[0.04, 0.05, 0.28, 0.11], [0.66, 0.05, 0.28, 0.11], [0.04, 0.28, 0.22, 0.13], [0.42, 0.28, 0.18, 0.15], [0.68, 0.28, 0.26, 0.15], [0.04, 0.84, 0.26, 0.12], [0.68, 0.84, 0.26, 0.12]];
+    for (var b = 0; b < bld.length; b++) {
+      var bb = bld[b], bx = W * bb[0], by = H * bb[1], bw = W * bb[2], bh = H * bb[3];
+      ctx.fillStyle = "#5b6b7a"; roundRect(bx, by, bw, bh, 6); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.12)";
+      for (var wx = bx + 8; wx < bx + bw - 6; wx += 14) for (var wy = by + 8; wy < by + bh - 6; wy += 14) ctx.fillRect(wx, wy, 5, 5);
+    }
+    ctx.fillStyle = "#5fa05a"; roundRect(W * 0.06, H * 0.52, W * 0.16, H * 0.16, 8); ctx.fill();
+    ctx.fillStyle = "#5fa05a"; roundRect(W * 0.78, H * 0.56, W * 0.15, H * 0.16, 8); ctx.fill();
+  }
+  function drawSnow(th) {
+    ctx.fillStyle = "#bfe3f2"; ctx.beginPath(); ctx.ellipse(W * 0.5, H * 0.28, 160, 70, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(W * 0.48, H * 0.27, 120, 44, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "#e8f1f8";
+    for (var m = 0; m < 5; m++) { var mx = W * (0.08 + 0.21 * m); ctx.beginPath(); ctx.moveTo(mx, H); ctx.lineTo(mx + 105, H * 0.55); ctx.lineTo(mx + 210, H); ctx.closePath(); ctx.fill(); }
+    ctx.fillStyle = "#ffffff";
+    for (var m2 = 0; m2 < 5; m2++) { var mx2 = W * (0.08 + 0.21 * m2); ctx.beginPath(); ctx.moveTo(mx2 + 70, H); ctx.lineTo(mx2 + 105, H * 0.68); ctx.lineTo(mx2 + 140, H); ctx.closePath(); ctx.fill(); }
+    for (var k = 0; k < scene.pines.length; k++) pine(scene.pines[k].x, scene.pines[k].y, scene.pines[k].r);
+  }
+  function drawVolcano(th) {
+    var vx = W * 0.78, vy = H * 0.82, vr = 122;
+    // 火山锥（俯视：一整片深色火山岩）
+    var cone = ctx.createRadialGradient(vx, vy, 14, vx, vy, vr);
+    cone.addColorStop(0, "#6a4438");
+    cone.addColorStop(0.55, "#4a312a");
+    cone.addColorStop(1, "#36251f");
+    ctx.fillStyle = cone;
+    ctx.beginPath(); ctx.arc(vx, vy, vr, 0, TWO_PI); ctx.fill();
+    // 崎岖的火山岩斑块
+    ctx.fillStyle = "rgba(0,0,0,.18)";
+    var bumps = [[0.70, 0.72, 34], [0.86, 0.70, 28], [0.82, 0.90, 40], [0.71, 0.88, 24]];
+    for (var bi = 0; bi < bumps.length; bi++) {
+      ctx.beginPath(); ctx.arc(W * bumps[bi][0], H * bumps[bi][1], bumps[bi][2], 0, TWO_PI); ctx.fill();
+    }
+    // 火山口外沿（深色环）
+    ctx.fillStyle = "#2a1c18";
+    ctx.beginPath(); ctx.arc(vx, vy, 58, 0, TWO_PI); ctx.fill();
+    // 熔岩湖
+    var lava = ctx.createRadialGradient(vx, vy, 3, vx, vy, 42);
+    lava.addColorStop(0, "#fff2b0");
+    lava.addColorStop(0.45, "#ffb03a");
+    lava.addColorStop(1, "#e8541e");
+    ctx.fillStyle = lava;
+    ctx.beginPath(); ctx.arc(vx, vy, 42, 0, TWO_PI); ctx.fill();
+    // 熔岩流：从火山口向外蔓延
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    var flows = [
+      { w: 26, c: [vx + 90, vy + 60], e: [vx + 128, vy + 132] },
+      { w: 20, c: [vx - 105, vy + 72], e: [vx - 148, vy + 128] },
+      { w: 22, c: [vx + 72, vy - 62], e: [vx + 104, vy - 146] },
+      { w: 15, c: [vx - 62, vy - 84], e: [vx - 96, vy - 168] }
+    ];
+    for (var f = 0; f < flows.length; f++) {
+      var fl = flows[f];
+      ctx.strokeStyle = "#e8541e"; ctx.lineWidth = fl.w;
+      ctx.beginPath(); ctx.moveTo(vx, vy);
+      ctx.quadraticCurveTo(fl.c[0], fl.c[1], fl.e[0], fl.e[1]); ctx.stroke();
+      ctx.strokeStyle = "#ff9a3d"; ctx.lineWidth = fl.w * 0.55;
+      ctx.beginPath(); ctx.moveTo(vx, vy);
+      ctx.quadraticCurveTo(fl.c[0], fl.c[1], fl.e[0], fl.e[1]); ctx.stroke();
+      ctx.fillStyle = "#ff9a3d";
+      ctx.beginPath(); ctx.arc(fl.e[0], fl.e[1], fl.w * 0.42, 0, TWO_PI); ctx.fill();
+    }
+    // 空地上的熔岩裂缝
+    ctx.strokeStyle = "rgba(255,122,61,.85)"; ctx.lineWidth = 3;
+    var cracks = [[0.30, 0.12, 0.37, 0.18], [0.12, 0.70, 0.21, 0.76], [0.50, 0.88, 0.59, 0.94]];
+    for (var c = 0; c < cracks.length; c++) {
+      ctx.beginPath(); ctx.moveTo(W * cracks[c][0], H * cracks[c][1]);
+      ctx.lineTo(W * cracks[c][2], H * cracks[c][3]); ctx.stroke();
+    }
+    // 岩石
+    ctx.fillStyle = "#4a3b3b";
+    for (var k2 = 0; k2 < scene.rocks.length; k2++) { var rk = scene.rocks[k2]; ctx.beginPath(); ctx.arc(rk.x, rk.y, rk.r, 0, TWO_PI); ctx.fill(); }
+  }
+
+  function drawHelipad() {
+    var h = game.helipad;
+    if (!h) return;
+    ctx.save();
+    ctx.fillStyle = "#3f4c5c";
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, TWO_PI); ctx.fill();
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, TWO_PI); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.r - 8, 0, TWO_PI); ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 28px Nunito, system-ui";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("H", h.x, h.y + 1);
+    ctx.restore();
+  }
+
+  function drawRunway(r) {
+    var th = THEMES[LEVELS[game.levelIndex].id];
+    ctx.save();
+    ctx.translate(r.cx, r.cy);
+    ctx.rotate(r.angle);
+    ctx.fillStyle = th.runway; roundRect(-r.len / 2, -r.width / 2, r.len, r.width, 5); ctx.fill();
+    ctx.strokeStyle = th.line; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(-r.len / 2 + 10, 0); ctx.lineTo(r.len / 2 - 10, 0); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = th.line;
+    ctx.fillRect(-r.len / 2 + 4, -r.width / 2 + 4, 5, r.width - 8);
+    ctx.fillRect(r.len / 2 - 9, -r.width / 2 + 4, 5, r.width - 8);
+    // 方向箭头：放在跑道降落方向的尽头（最前面）
+    var d = r.dirSign;
+    var tipX = d * (r.len / 2 - 2);
+    var baseX = d * (r.len / 2 - 34);
+    ctx.beginPath();
+    ctx.moveTo(tipX, 0); ctx.lineTo(baseX, -18); ctx.lineTo(baseX, 18); ctx.closePath();
+    ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.strokeStyle = "rgba(15,23,42,.6)"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawSnowLayer() {
+    if (LEVELS[game.levelIndex].id !== "snow") return;
+    for (var i = 0; i < game.runways.length; i++) {
+      var r = game.runways[i];
+      if (!r.snow) continue;
+      var cells = r.snow.length;
+      var cw = r.len / cells;
+      ctx.save();
+      ctx.translate(r.cx, r.cy);
+      ctx.rotate(r.angle);
+      for (var c = 0; c < cells; c++) {
+        if (r.snow[c] <= 0.02) continue;
+        var x0 = -r.len / 2 + c * cw;
+        ctx.fillStyle = "rgba(255,255,255," + (0.55 * r.snow[c]).toFixed(2) + ")";
+        roundRect(x0 + 1.5, -r.width / 2 + 2, cw - 3, r.width - 4, 3);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawPath(p) {
+    if (!p.path.length || p.pathI >= p.path.length) return;
+    ctx.save();
+    ctx.strokeStyle = p.color; ctx.globalAlpha = 0.35; ctx.setLineDash([5, 6]); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    for (var i = p.pathI; i < p.path.length; i++) ctx.lineTo(p.path[i].x, p.path[i].y);
+    ctx.stroke(); ctx.restore();
+  }
+
+  function drawHelicopter(p) {
+    var alpha = p.status === "landing" ? Math.max(0, 1 - p.landT / 0.55) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.angle); ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(0, 11, 13, 5, 0, 0, TWO_PI); ctx.fill();
+    ctx.strokeStyle = shade(p.color, -26); ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(-20, 0); ctx.stroke();
+    ctx.strokeStyle = "rgba(15,23,42,.55)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-21, -5); ctx.lineTo(-21, 5); ctx.stroke();
+    ctx.fillStyle = shade(p.color, -26); ctx.beginPath(); ctx.ellipse(0, 0, 14, 7.5, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = p.color; ctx.beginPath(); ctx.ellipse(0, 0, 11, 5.5, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.arc(5, 0, 2.6, 0, TWO_PI); ctx.fill();
+    ctx.save(); ctx.rotate(game.time * 14);
+    ctx.strokeStyle = "rgba(15,23,42,.8)"; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-19, 0); ctx.lineTo(19, 0); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-19, 0); ctx.lineTo(19, 0); ctx.stroke();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawAirliner(p) {
+    var alpha = p.status === "landing" ? Math.max(0, 1 - p.landT / 0.55) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.angle); ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(0, 14, 20, 6, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = shade(p.color, -18);
+    ctx.beginPath();
+    ctx.moveTo(-6, 0); ctx.lineTo(-10, -26); ctx.lineTo(0, -26); ctx.lineTo(5, 0);
+    ctx.lineTo(0, 26); ctx.lineTo(-10, 26); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-22, 0); ctx.lineTo(-27, -11); ctx.lineTo(-19, -11); ctx.lineTo(-16, 0);
+    ctx.lineTo(-19, 11); ctx.lineTo(-27, 11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#f1f5f9"; ctx.beginPath(); ctx.ellipse(0, 0, 26, 6, 0, 0, TWO_PI); ctx.fill();
+    ctx.strokeStyle = "rgba(15,23,42,.25)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 26, 6, 0, 0, TWO_PI); ctx.stroke();
+    ctx.fillStyle = shade(p.color, -8); ctx.beginPath(); ctx.ellipse(22, 0, 5, 4, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = p.color; ctx.fillRect(16, -4.5, 6, 9);
+    ctx.fillStyle = shade(p.color, -16);
+    ctx.beginPath(); ctx.ellipse(-2, -14, 4.5, 2.6, 0, 0, TWO_PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-2, 14, 4.5, 2.6, 0, 0, TWO_PI); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawGlider(p) {
+    var alpha = p.status === "landing" ? Math.max(0, 1 - p.landT / 0.55) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.angle); ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,.14)"; ctx.beginPath(); ctx.ellipse(0, 12, 16, 5, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = shade(p.color, -18);
+    ctx.beginPath();
+    ctx.moveTo(-3, 0); ctx.lineTo(-6, -30); ctx.lineTo(0, -30); ctx.lineTo(4, 0);
+    ctx.lineTo(0, 30); ctx.lineTo(-6, 30); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-18, 0); ctx.lineTo(-23, -7); ctx.lineTo(-17, -7); ctx.lineTo(-15, 0);
+    ctx.lineTo(-17, 7); ctx.lineTo(-23, 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = shade(p.color, -10); ctx.beginPath(); ctx.ellipse(0, 0, 22, 3.5, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.arc(19, 0, 2.2, 0, TWO_PI); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlane(p) {
+    if (p.type === "heli") { drawHelicopter(p); return; }
+    if (p.type === "airliner") { drawAirliner(p); return; }
+    if (p.type === "glider") { drawGlider(p); return; }
+    var alpha = p.status === "landing" ? Math.max(0, 1 - p.landT / 0.55) : 1;
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.angle); ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(0, 11, 13, 5, 0, 0, TWO_PI); ctx.fill();
+    ctx.fillStyle = shade(p.color, -28);
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-9, -11); ctx.lineTo(-3, -11); ctx.lineTo(2, 0); ctx.lineTo(-3, 11); ctx.lineTo(-9, 11); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-11, -7); ctx.lineTo(-8, 0); ctx.lineTo(-11, 7); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath(); ctx.arc(6, 0, 3, 0, TWO_PI); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDrawingPath() {
+    var d = game.drawing;
+    if (!d) return;
+    ctx.save();
+    ctx.strokeStyle = d.plane.color; ctx.globalAlpha = 0.75; ctx.setLineDash([6, 7]); ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(d.plane.x, d.plane.y);
+    for (var i = 0; i < d.points.length; i++) ctx.lineTo(d.points[i].x, d.points[i].y);
+    ctx.lineTo(d.cur.x, d.cur.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawAmbient() {
+    var id = LEVELS[game.levelIndex].id;
+    ctx.globalAlpha = 0.7;
+    for (var i = 0; i < ambient.length; i++) {
+      var a = ambient[i];
+      ctx.fillStyle = id === "snow" ? "#ffffff" : "#ffb35c";
+      ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, TWO_PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHUD() {
+    var backBtn = { x: 10, y: 10, w: 86, h: 34 };
+    roundRect(backBtn.x, backBtn.y, backBtn.w, backBtn.h, 17);
+    ctx.fillStyle = "rgba(15,23,42,.5)"; ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = "700 15px Nunito, system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("← 返回", backBtn.x + backBtn.w / 2, backBtn.y + backBtn.h / 2 + 1);
+
+    ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "800 20px Nunito, system-ui";
+    ctx.fillText(level.name, W / 2, 28);
+    ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.font = "700 15px Nunito, system-ui";
+    ctx.fillText("落地 " + game.landed + " / " + game.target, W / 2, 52);
+
+    ctx.font = "18px system-ui";
+    ctx.fillText(muted ? "🔇" : "🔊", W - 28, 30);
+  }
+
+  // ---------- Input ----------
+  function findPlaneAt(x, y, rad) {
+    var best = null, bd = rad;
+    for (var i = 0; i < game.planes.length; i++) {
+      var p = game.planes[i];
+      if (p.status !== "flying") continue;
+      var d = Math.hypot(p.x - x, p.y - y);
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best;
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    audio();
+    var pos = pointerPos(e);
+
+    if (pos.x >= 10 && pos.x <= 96 && pos.y >= 10 && pos.y <= 44) { backToMenu(); return; }
+    if (pos.x >= W - 52 && pos.x <= W - 8 && pos.y >= 10 && pos.y <= 50) { muted = !muted; return; }
+    if (game.done) return;
+
+    var p = findPlaneAt(pos.x, pos.y, 26);
+    if (p) {
+      game.drawing = { plane: p, points: [], cur: pos };
+    } else if (LEVELS[game.levelIndex].id === "snow") {
+      game.clearing = true;
+      clearSnowAt(pos.x, pos.y);
+    }
+  }
+  function onMove(e) {
+    var pos = pointerPos(e);
+    if (game.drawing) {
+      game.drawing.cur = pos;
+      var pts = game.drawing.points;
+      if (pts.length === 0) { pts.push({ x: pos.x, y: pos.y }); }
+      else {
+        var last = pts[pts.length - 1];
+        if (Math.hypot(pos.x - last.x, pos.y - last.y) > 7) pts.push({ x: pos.x, y: pos.y });
+      }
+    } else if (game.clearing) {
+      clearSnowAt(pos.x, pos.y);
+    }
+  }
+  function onUp(e) {
+    if (game.drawing) {
+      var d = game.drawing;
+      game.drawing = null;
+      if (d.plane.status === "flying" && d.points.length >= 1) {
+        var pts = d.points, bi = 0, bd = Infinity;
+        for (var i = 0; i < pts.length; i++) {
+          var dd = Math.hypot(pts[i].x - d.plane.x, pts[i].y - d.plane.y);
+          if (dd < bd) { bd = dd; bi = i; }
+        }
+        d.plane.path = pts.slice(bi);
+        d.plane.pathI = 0;
+      }
+    }
+    game.clearing = false;
+  }
+
+  canvas.addEventListener("pointerdown", onDown);
+  canvas.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+
+  // ---------- Screens ----------
+  function showScreen(name) {
+    document.getElementById("menu").style.display = name === "menu" ? "block" : "none";
+    document.getElementById("gameScreen").style.display = name === "game" ? "flex" : "none";
+  }
+  function startLevel(i) {
+    game.levelIndex = i;
+    level = LEVELS[i];
+    game.planes = []; game.runways = makeRunways(level.runways);
+    if (LEVELS[i].id === "snow") {
+      game.snowTimer = 30;
+      for (var sr = 0; sr < game.runways.length; sr++) {
+        var cells = 28, cover = [];
+        for (var sc = 0; sc < cells; sc++) cover.push(1);
+        game.runways[sr].snow = cover;
+      }
+    }
+    game.helipad = { x: W * 0.15, y: H * 0.5, r: 32 };
+    game.landed = 0; game.target = level.target;
+    game.done = false;
+    game.spawnTimer = 1.2; game.time = 0; game.drawing = null; game.clearing = false;
+    floaters = [];
+    particles = [];
+    initAmbient(i);
+    initScene(i);
+    hideOverlay();
+    showScreen("game");
+    gameActive = true;
+    resize();
+    soundClick();
+  }
+  function backToMenu() {
+    gameActive = false;
+    showScreen("menu");
+    renderMenu();
+  }
+
+  // ---------- Overlay ----------
+  function showOverlay(type) {
+    var icon = document.getElementById("ovIcon");
+    var title = document.getElementById("ovTitle");
+    var sub = document.getElementById("ovSub");
+    var b1 = document.getElementById("ovBtn1");
+    var b2 = document.getElementById("ovBtn2");
+    if (type === "complete") {
+      icon.textContent = "🎉";
+      title.textContent = "任务完成！";
+      var next = game.levelIndex + 1;
+      sub.textContent = next < LEVELS.length ? "已解锁：" + LEVELS[next].name : "全部关卡已通关！";
+      b1.textContent = next < LEVELS.length ? "下一关" : "返回选关";
+      b1.onclick = function () { if (next < LEVELS.length) startLevel(next); else backToMenu(); };
+      b2.textContent = "返回选关";
+      b2.onclick = backToMenu;
+    }
+    document.getElementById("overlay").style.display = "flex";
+  }
+  function hideOverlay() { document.getElementById("overlay").style.display = "none"; }
+
+  // ---------- Menu ----------
+  function thumbGradient(id) {
+    switch (id) {
+      case "farm": return "linear-gradient(135deg,#8fce6b,#5ea340)";
+      case "canyon": return "linear-gradient(135deg,#e2a15f,#c06a3f)";
+      case "city": return "linear-gradient(135deg,#a8c0d8,#66788a)";
+      case "snow": return "linear-gradient(135deg,#e6f3ff,#9fc3df)";
+      case "volcano": return "linear-gradient(135deg,#5a3a3a,#2a2020)";
+    }
+    return "";
+  }
+  function renderMenu() {
+    var grid = document.getElementById("levelGrid");
+    grid.innerHTML = "";
+    for (var i = 0; i < LEVELS.length; i++) {
+      (function (idx) {
+        var L = LEVELS[idx];
+        var locked = idx > unlocked;
+        var card = document.createElement("button");
+        card.className = "level-card" + (locked ? " locked" : "");
+        card.disabled = locked;
+        card.innerHTML =
+          '<div class="thumb" style="background:' + thumbGradient(L.id) + '">' +
+            '<span class="icon">' + L.icon + '</span>' +
+            (locked ? '<span class="lock">🔒</span>' : '') +
+          '</div>' +
+          '<div class="lcinfo"><h3>' + L.name + '</h3>' +
+            '<span>' + (locked ? "完成上一关任务解锁" : "任务：落地 " + L.target + " 架") + '</span>' +
+          '</div>';
+        if (!locked) card.addEventListener("click", function () { startLevel(idx); });
+        grid.appendChild(card);
+      })(i);
+    }
+    document.getElementById("progress").textContent = "已解锁 " + (unlocked + 1) + " / " + LEVELS.length + " 关";
+  }
+
+  // ---------- Main loop ----------
+  var last = performance.now();
+  function loop(now) {
+    var dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    if (gameActive && !game.done) update(dt);
+    if (gameActive) render();
+    requestAnimationFrame(loop);
+  }
+
+  renderMenu();
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var KEY_LIKE = "skycontrol_like", KEY_DISLIKE = "skycontrol_dislike", KEY_VOTED = "skycontrol_voted";
+
+  // 一次性重置：把点赞/差评计数和投票状态归零
+  try {
+    if (!localStorage.getItem("skycontrol_vote_reset_v1")) {
+      localStorage.setItem(KEY_LIKE, "0");
+      localStorage.setItem(KEY_DISLIKE, "0");
+      localStorage.removeItem(KEY_VOTED);
+      localStorage.setItem("skycontrol_vote_reset_v1", "1");
+    }
+  } catch (e) {}
+
+  function load(key) { try { return parseInt(localStorage.getItem(key), 10) || 0; } catch (e) { return 0; } }
+  function save(key, v) { try { localStorage.setItem(key, String(v)); } catch (e) {} }
+  function loadVoted() { try { return localStorage.getItem(KEY_VOTED) || ""; } catch (e) { return ""; } }
+  function saveVoted(v) { try { if (v) localStorage.setItem(KEY_VOTED, v); else localStorage.removeItem(KEY_VOTED); } catch (e) {} }
+
+  var like = load(KEY_LIKE), dislike = load(KEY_DISLIKE);
+  var voted = loadVoted();   // "" | "like" | "dislike"
+  var likeBtn = document.getElementById("likeBtn");
+  var dislikeBtn = document.getElementById("dislikeBtn");
+  var likeCnt = document.getElementById("likeCnt");
+  var dislikeCnt = document.getElementById("dislikeCnt");
+  var fsBtn = document.getElementById("fsBtn");
+
+  function renderCounts() {
+    likeCnt.textContent = String(like);
+    dislikeCnt.textContent = String(dislike);
+    likeBtn.classList.toggle("voted", voted === "like");
+    dislikeBtn.classList.toggle("voted", voted === "dislike");
+    var hasVoted = voted !== "";
+    likeBtn.disabled = hasVoted;
+    dislikeBtn.disabled = hasVoted;
+    likeBtn.title = hasVoted ? (voted === "like" ? "已点赞" : "已投过票") : "点赞";
+    dislikeBtn.title = hasVoted ? (voted === "dislike" ? "已吐槽" : "已投过票") : "吐槽";
+  }
+  renderCounts();
+
+  likeBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (voted !== "") return;
+    like++; voted = "like"; save(KEY_LIKE, like); saveVoted(voted); renderCounts();
+  });
+  dislikeBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (voted !== "") return;
+    dislike++; voted = "dislike"; save(KEY_DISLIKE, dislike); saveVoted(voted); renderCounts();
+  });
+
+  function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement); }
+  function isZoomed() { var w = document.querySelector(".game-wrap"); return !!(w && w.classList.contains("zoom")); }
+  function updateFsIcon() { var on = isFs() || isZoomed(); fsBtn.textContent = on ? "✕" : "⛶"; fsBtn.title = on ? "缩小" : "放大"; }
+  function applyZoom(on) {
+    var w = document.querySelector(".game-wrap");
+    if (w) w.classList.toggle("zoom", on);
+    window.dispatchEvent(new Event("resize"));
+  }
+  function toggleFs() {
+    if (isFs()) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    } else if (isZoomed()) {
+      applyZoom(false);
+    } else {
+      var el = document.documentElement;
+      if (el.requestFullscreen) {
+        var p = el.requestFullscreen();
+        if (p && p.catch) p.catch(function () { applyZoom(true); updateFsIcon(); });
+      } else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+      else if (el.msRequestFullscreen) { el.msRequestFullscreen(); }
+      applyZoom(true);
+    }
+    updateFsIcon();
+  }
+  fsBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleFs(); });
+  document.addEventListener("fullscreenchange", function () { if (!isFs()) applyZoom(false); updateFsIcon(); });
+  document.addEventListener("webkitfullscreenchange", function () { if (!isFs()) applyZoom(false); updateFsIcon(); });
+  document.addEventListener("msfullscreenchange", function () { if (!isFs()) applyZoom(false); updateFsIcon(); });
+  updateFsIcon();
+})();
+</script>
+</body>
+</html>
